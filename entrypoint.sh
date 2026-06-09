@@ -37,6 +37,9 @@ python manage.py makemigrations --noinput
 echo "[entrypoint] Running migrations..."
 python manage.py migrate --noinput
 
+echo "[entrypoint] Seeding initial missions and rewards..."
+python manage.py seed_data
+
 echo "[entrypoint] Collecting static files..."
 python manage.py collectstatic --noinput --clear
 

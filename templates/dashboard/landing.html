@@ -4,98 +4,233 @@
 {% block title %}eFootball Rewards — Gagnez des récompenses{% endblock %}
 
 {% block content %}
+
+<!-- ── HERO ──────────────────────────────────────────────────── -->
 <section class="hero">
-    <div class="hero-bg"></div>
-    <div class="hero-content">
-        <div class="hero-badge">
-            <i class="fas fa-futbol"></i> Plateforme officielle de récompenses
-        </div>
-        <h1 class="hero-title">
-            Gagnez des points.<br>
-            <span class="accent">Réclamez vos récompenses.</span>
-        </h1>
-        <p class="hero-subtitle">
-            Connectez-vous chaque jour, accomplissez des missions et échangez vos points
-            contre des récompenses exclusives eFootball.
-        </p>
-        <div class="hero-cta">
-            <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg">
-                <i class="fas fa-rocket"></i> Commencer gratuitement
-            </a>
-            <a href="{% url 'accounts:login' %}" class="btn btn-outline btn-lg">
-                <i class="fas fa-sign-in-alt"></i> Se connecter
-            </a>
-        </div>
+  <div class="hero-bg"></div>
+
+  <!-- Balles flottantes décoratives -->
+  <div class="floating-balls" aria-hidden="true">
+    <span class="ball b1">⚽</span>
+    <span class="ball b2">🏆</span>
+    <span class="ball b3">⚽</span>
+    <span class="ball b4">⭐</span>
+    <span class="ball b5">⚽</span>
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-badge">
+      <i class="fas fa-futbol"></i> Plateforme officielle de récompenses
     </div>
-    <div class="hero-stats">
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-users"></i></div>
-            <div class="stat-value">10K+</div>
-            <div class="stat-label">Joueurs actifs</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-star"></i></div>
-            <div class="stat-value">500K+</div>
-            <div class="stat-label">Points distribués</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-gift"></i></div>
-            <div class="stat-value">1K+</div>
-            <div class="stat-label">Récompenses livrées</div>
-        </div>
+    <h1 class="hero-title">
+      Gagnez des points.<br>
+      <span class="accent">Réclamez vos récompenses.</span>
+    </h1>
+    <p class="hero-subtitle">
+      Connectez-vous chaque jour, accomplissez des missions et échangez vos points
+      contre des récompenses exclusives eFootball.
+    </p>
+    <div class="hero-cta">
+      <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg">
+        <i class="fas fa-rocket"></i> Commencer gratuitement
+      </a>
+      <a href="{% url 'accounts:login' %}" class="btn btn-outline btn-lg">
+        <i class="fas fa-sign-in-alt"></i> Se connecter
+      </a>
     </div>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-users"></i></div>
+      <div class="stat-value">10K+</div>
+      <div class="stat-label">Joueurs actifs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-star"></i></div>
+      <div class="stat-value">500K+</div>
+      <div class="stat-label">Points distribués</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-gift"></i></div>
+      <div class="stat-value">1K+</div>
+      <div class="stat-label">Récompenses livrées</div>
+    </div>
+  </div>
 </section>
 
+<!-- ── CARTES JOUEURS ─────────────────────────────────────────── -->
+<section class="players-section">
+  <div class="container">
+    <h2 class="section-title">🌟 Joueurs en vedette</h2>
+    <p class="section-subtitle">Gagnez assez de points pour débloquer des packs contenant ces légendes</p>
+    <div class="players-grid">
+
+      <div class="player-card card-gold">
+        <div class="card-shine"></div>
+        <div class="card-rating">99</div>
+        <div class="card-position">ATT</div>
+        <div class="card-avatar"><i class="fas fa-user-circle"></i></div>
+        <div class="card-name">Lionel M.</div>
+        <div class="card-club">⚽ Inter Miami</div>
+        <div class="card-stats">
+          <span><b>96</b><small>TIR</small></span>
+          <span><b>97</b><small>DRI</small></span>
+          <span><b>94</b><small>PAS</small></span>
+        </div>
+        <div class="card-badge">LÉGENDE</div>
+      </div>
+
+      <div class="player-card card-diamond">
+        <div class="card-shine"></div>
+        <div class="card-rating">98</div>
+        <div class="card-position">ATT</div>
+        <div class="card-avatar"><i class="fas fa-user-circle"></i></div>
+        <div class="card-name">Cristiano R.</div>
+        <div class="card-club">⚽ Al Nassr</div>
+        <div class="card-stats">
+          <span><b>97</b><small>TIR</small></span>
+          <span><b>93</b><small>DRI</small></span>
+          <span><b>92</b><small>PAS</small></span>
+        </div>
+        <div class="card-badge">ICÔNE</div>
+      </div>
+
+      <div class="player-card card-platinum">
+        <div class="card-shine"></div>
+        <div class="card-rating">96</div>
+        <div class="card-position">MIL</div>
+        <div class="card-avatar"><i class="fas fa-user-circle"></i></div>
+        <div class="card-name">Kylian M.</div>
+        <div class="card-club">⚽ Real Madrid</div>
+        <div class="card-stats">
+          <span><b>94</b><small>TIR</small></span>
+          <span><b>97</b><small>DRI</small></span>
+          <span><b>90</b><small>VIT</small></span>
+        </div>
+        <div class="card-badge">ÉPIQUE</div>
+      </div>
+
+      <div class="player-card card-silver">
+        <div class="card-shine"></div>
+        <div class="card-rating">94</div>
+        <div class="card-position">MIL</div>
+        <div class="card-avatar"><i class="fas fa-user-circle"></i></div>
+        <div class="card-name">E. Hazard</div>
+        <div class="card-club">⚽ Retraité</div>
+        <div class="card-stats">
+          <span><b>91</b><small>TIR</small></span>
+          <span><b>95</b><small>DRI</small></span>
+          <span><b>89</b><small>PAS</small></span>
+        </div>
+        <div class="card-badge">RARE</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── MONNAIES & RÉCOMPENSES ────────────────────────────────── -->
+<section class="coins-section">
+  <div class="container">
+    <h2 class="section-title">💰 Ce que vous pouvez gagner</h2>
+    <p class="section-subtitle">Échangez vos points contre des ressources in-game ou des cartes cadeaux</p>
+    <div class="coins-grid">
+
+      <div class="coin-card">
+        <div class="coin-icon gp-icon">
+          <span class="coin-symbol">GP</span>
+        </div>
+        <h3>Game Points</h3>
+        <p>Utilisez des GP pour acheter des joueurs, équipements et packs dans eFootball.</p>
+        <div class="coin-price"><i class="fas fa-star"></i> À partir de 200 pts</div>
+      </div>
+
+      <div class="coin-card">
+        <div class="coin-icon pack-icon">
+          <i class="fas fa-box-open"></i>
+        </div>
+        <h3>Packs Joueurs</h3>
+        <p>Ouvrez des packs pour obtenir des joueurs épiques et légendaires aléatoires.</p>
+        <div class="coin-price"><i class="fas fa-star"></i> À partir de 500 pts</div>
+      </div>
+
+      <div class="coin-card">
+        <div class="coin-icon gift-icon">
+          <i class="fas fa-gift"></i>
+        </div>
+        <h3>Cartes Cadeaux</h3>
+        <p>Google Play ou App Store — des cartes de 5€ à 20€ pour vos achats in-game.</p>
+        <div class="coin-price"><i class="fas fa-star"></i> À partir de 2 000 pts</div>
+      </div>
+
+      <div class="coin-card">
+        <div class="coin-icon premium-icon">
+          <i class="fas fa-crown"></i>
+        </div>
+        <h3>Pass Premium</h3>
+        <p>Accédez aux fonctionnalités exclusives eFootball pendant 30 jours.</p>
+        <div class="coin-price"><i class="fas fa-star"></i> À partir de 3 000 pts</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── COMMENT ÇA MARCHE ─────────────────────────────────────── -->
 <section class="features">
-    <div class="container">
-        <h2 class="section-title">Comment ça marche ?</h2>
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-calendar-check"></i></div>
-                <h3>Connexion quotidienne</h3>
-                <p>Connectez-vous chaque jour pour gagner +10 points. Les streaks vous rapportent des bonus allant jusqu'à +300 points !</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-tasks"></i></div>
-                <h3>Missions</h3>
-                <p>Complétez des missions quotidiennes, hebdomadaires et permanentes pour accumuler un maximum de points.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-gift"></i></div>
-                <h3>Récompenses</h3>
-                <p>Échangez vos points contre des récompenses exclusives : items in-game, cartes cadeaux, et plus encore.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-trophy"></i></div>
-                <h3>Niveaux</h3>
-                <p>Progressez de Bronze à Diamant et débloquez des avantages exclusifs à chaque niveau.</p>
-            </div>
-        </div>
+  <div class="container">
+    <h2 class="section-title">Comment ça marche ?</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fas fa-calendar-check"></i></div>
+        <h3>Connexion quotidienne</h3>
+        <p>Connectez-vous chaque jour pour gagner +10 points. Les streaks rapportent jusqu'à +300 pts bonus !</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fas fa-tasks"></i></div>
+        <h3>Missions</h3>
+        <p>Complétez des missions quotidiennes, hebdomadaires et permanentes pour accumuler un maximum de points.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fas fa-gift"></i></div>
+        <h3>Récompenses</h3>
+        <p>Échangez vos points contre des récompenses exclusives : GP, packs joueurs, cartes cadeaux.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fas fa-trophy"></i></div>
+        <h3>Niveaux</h3>
+        <p>Progressez de Bronze à Diamant et débloquez des avantages exclusifs à chaque niveau.</p>
+      </div>
     </div>
+  </div>
 </section>
 
+<!-- ── NIVEAUX ───────────────────────────────────────────────── -->
 <section class="levels-preview">
-    <div class="container">
-        <h2 class="section-title">Système de niveaux</h2>
-        <div class="levels-grid">
-            <div class="level-card level-bronze"><i class="fas fa-medal"></i><span>Bronze</span><small>0 pts</small></div>
-            <div class="level-card level-silver"><i class="fas fa-medal"></i><span>Argent</span><small>500 pts</small></div>
-            <div class="level-card level-gold"><i class="fas fa-medal"></i><span>Or</span><small>1 500 pts</small></div>
-            <div class="level-card level-platinum"><i class="fas fa-gem"></i><span>Platine</span><small>5 000 pts</small></div>
-            <div class="level-card level-diamond"><i class="fas fa-gem"></i><span>Diamant</span><small>15 000 pts</small></div>
-        </div>
+  <div class="container">
+    <h2 class="section-title">Système de niveaux</h2>
+    <div class="levels-grid">
+      <div class="level-card level-bronze"><i class="fas fa-medal"></i><span>Bronze</span><small>0 pts</small></div>
+      <div class="level-card level-silver"><i class="fas fa-medal"></i><span>Argent</span><small>500 pts</small></div>
+      <div class="level-card level-gold"><i class="fas fa-medal"></i><span>Or</span><small>1 500 pts</small></div>
+      <div class="level-card level-platinum"><i class="fas fa-gem"></i><span>Platine</span><small>5 000 pts</small></div>
+      <div class="level-card level-diamond"><i class="fas fa-gem"></i><span>Diamant</span><small>15 000 pts</small></div>
     </div>
+  </div>
 </section>
 
+<!-- ── CTA ───────────────────────────────────────────────────── -->
 <section class="cta-section">
-    <div class="container">
-        <div class="cta-card">
-            <h2>Prêt à jouer ?</h2>
-            <p>Rejoignez des milliers de joueurs et commencez à gagner dès aujourd'hui.</p>
-            <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg">
-                <i class="fas fa-user-plus"></i> Créer un compte gratuit
-            </a>
-        </div>
+  <div class="container">
+    <div class="cta-card">
+      <h2>Prêt à jouer ?</h2>
+      <p>Rejoignez des milliers de joueurs et commencez à gagner dès aujourd'hui.</p>
+      <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg">
+        <i class="fas fa-user-plus"></i> Créer un compte gratuit
+      </a>
     </div>
+  </div>
 </section>
+
 {% endblock %}

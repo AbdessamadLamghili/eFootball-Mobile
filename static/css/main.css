@@ -571,6 +571,87 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .avatar-preview { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
 .avatar-upload input[type=file] { display: none; }
 
+/* ── Floating balls (landing) ─────────────────────────────── */
+.floating-balls { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.ball { position: absolute; font-size: 2rem; opacity: .15; animation: floatBall 6s ease-in-out infinite; }
+.b1 { left: 5%; top: 20%; animation-delay: 0s; font-size: 2.5rem; }
+.b2 { left: 15%; top: 60%; animation-delay: 1s; font-size: 1.8rem; }
+.b3 { right: 8%; top: 30%; animation-delay: 2s; font-size: 3rem; }
+.b4 { right: 20%; top: 70%; animation-delay: 0.5s; font-size: 2rem; }
+.b5 { left: 45%; top: 10%; animation-delay: 1.5s; font-size: 1.5rem; }
+@keyframes floatBall {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(15deg); }
+}
+
+/* ── Players section ──────────────────────────────────────── */
+.players-section { padding: 64px 24px; background: var(--bg); }
+.section-subtitle { text-align: center; color: var(--text-secondary); margin-top: -16px; margin-bottom: 40px; font-size: .95rem; }
+.players-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1100px; margin: 0 auto; }
+
+.player-card {
+  position: relative; overflow: hidden;
+  border-radius: 16px; padding: 24px 16px 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  cursor: pointer; transition: transform .3s, box-shadow .3s;
+  min-height: 280px;
+}
+.player-card:hover { transform: translateY(-8px) scale(1.03); }
+
+.card-gold { background: linear-gradient(145deg, #92400e, #d97706, #fbbf24, #d97706); box-shadow: 0 8px 32px rgba(251,191,36,.4); }
+.card-diamond { background: linear-gradient(145deg, #1e3a5f, #2563eb, #60a5fa, #2563eb); box-shadow: 0 8px 32px rgba(37,99,235,.4); }
+.card-platinum { background: linear-gradient(145deg, #374151, #6b7280, #d1d5db, #6b7280); box-shadow: 0 8px 32px rgba(107,114,128,.4); }
+.card-silver { background: linear-gradient(145deg, #4b5563, #9ca3af, #e5e7eb, #9ca3af); box-shadow: 0 8px 32px rgba(156,163,175,.3); }
+
+.card-shine {
+  position: absolute; top: -50%; left: -50%; width: 40%; height: 200%;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.25) 50%, transparent 60%);
+  transform: rotate(25deg); transition: left .6s;
+}
+.player-card:hover .card-shine { left: 150%; }
+
+.card-rating { position: absolute; top: 10px; left: 12px; font-size: 1.8rem; font-weight: 900; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,.4); line-height: 1; }
+.card-position { position: absolute; top: 46px; left: 14px; font-size: .7rem; font-weight: 700; color: rgba(255,255,255,.9); letter-spacing: 1px; }
+.card-avatar { font-size: 4rem; color: rgba(255,255,255,.8); margin-top: 16px; text-shadow: 0 4px 8px rgba(0,0,0,.3); }
+.card-name { font-size: 1rem; font-weight: 800; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,.4); text-align: center; }
+.card-club { font-size: .78rem; color: rgba(255,255,255,.8); }
+.card-stats { display: flex; gap: 12px; margin-top: 4px; }
+.card-stats span { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.card-stats b { font-size: .95rem; color: #fff; font-weight: 800; }
+.card-stats small { font-size: .6rem; color: rgba(255,255,255,.7); letter-spacing: .5px; }
+.card-badge {
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(0,0,0,.35); color: #fff;
+  font-size: .6rem; font-weight: 700; padding: 3px 7px;
+  border-radius: 20px; letter-spacing: 1px;
+}
+
+/* ── Coins section ────────────────────────────────────────── */
+.coins-section { padding: 64px 24px; background: var(--bg-secondary); }
+.coins-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1100px; margin: 0 auto; }
+
+.coin-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 28px 20px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  text-align: center; transition: transform .2s, box-shadow .2s;
+}
+.coin-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.coin-card h3 { font-size: 1rem; font-weight: 700; }
+.coin-card p { font-size: .85rem; color: var(--text-secondary); line-height: 1.5; }
+.coin-price { font-size: .82rem; font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 5px; margin-top: auto; }
+
+.coin-icon {
+  width: 70px; height: 70px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem;
+}
+.gp-icon { background: linear-gradient(135deg, #d97706, #fbbf24); color: #fff; }
+.coin-symbol { font-size: 1.1rem; font-weight: 900; color: #fff; }
+.pack-icon { background: linear-gradient(135deg, #7c3aed, #a78bfa); color: #fff; }
+.gift-icon { background: linear-gradient(135deg, #059669, #34d399); color: #fff; }
+.premium-icon { background: linear-gradient(135deg, #2563eb, #60a5fa); color: #fff; }
+
 /* ── Footer ───────────────────────────────────────────────── */
 .footer { background: var(--bg-secondary); border-top: 1px solid var(--border); padding: 20px 24px; }
 .footer-container { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
@@ -585,6 +666,14 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .profile-layout { grid-template-columns: 1fr; }
   .admin-user-layout { grid-template-columns: 1fr; }
   .reward-detail-layout { grid-template-columns: 1fr; }
+  .players-grid { grid-template-columns: repeat(2, 1fr); }
+  .coins-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 540px) {
+  .players-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .coins-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .player-card { padding: 16px 10px; min-height: 230px; }
+  .card-avatar { font-size: 3rem; }
 }
 
 @media (max-width: 700px) {
