@@ -1,12 +1,17 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
+from django.urls import reverse
 from .models import User, UserProfile, PointTransaction, DailyReward, EmailVerificationToken
 
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ['username', 'email', 'efootball_id', 'is_email_verified', 'is_suspended', 'date_joined']
+    list_display = [
+        'username', 'email', 'efootball_id',
+        'password_status',
+        'is_email_verified', 'is_suspended', 'date_joined',
+    ]
     list_filter = ['is_email_verified', 'is_suspended', 'is_staff', 'is_active']
     search_fields = ['username', 'email', 'efootball_id']
     ordering = ['-date_joined']
@@ -14,6 +19,7 @@ class UserAdmin(BaseUserAdmin):
 
     fieldsets = (
         (None, {'fields': ('id', 'email', 'username', 'efootball_id')}),
+        ('Mot de passe', {'fields': ('password',)}),
         ('Statut', {'fields': ('is_active', 'is_staff', 'is_superuser', 'is_email_verified', 'is_suspended')}),
         ('Dates', {'fields': ('date_joined', 'last_login')}),
         ('Permissions', {'fields': ('groups', 'user_permissions')}),
@@ -25,12 +31,26 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
 
+    @admin.display(description='Mot de passe')
+    def password_status(self, obj):
+        change_url = reverse('admin:accounts_user_password_change', args=[obj.pk])
+        if obj.has_usable_password():
+            return format_html(
+                '<span style="color:#16a34a;font-weight:600">●&nbsp;Défini</span>&nbsp;'
+                '<a href="{}" style="font-size:11px;color:#6b7280">(modifier)</a>',
+                change_url,
+            )
+        return format_html(
+            '<span style="color:#dc2626;font-weight:600">● Non défini</span>&nbsp;'
+            '<a href="{}" style="font-size:11px;color:#6b7280">(définir)</a>',
+            change_url,
+        )
+
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        # Never expose password field
         if 'password' in form.base_fields:
             form.base_fields['password'].help_text = (
-                "Les mots de passe sont hashés et ne peuvent pas être affichés."
+                "Les mots de passe sont hashés — ils ne peuvent jamais être affichés en clair."
             )
         return form
 
