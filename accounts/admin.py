@@ -33,16 +33,16 @@ class UserAdmin(BaseUserAdmin):
 
     @admin.display(description='Mot de passe')
     def password_status(self, obj):
-        change_url = reverse('admin:accounts_user_password_change', args=[obj.pk])
+        change_url = reverse('admin:accounts_user_change', args=[obj.pk])
         if obj.has_usable_password():
             return format_html(
                 '<span style="color:#16a34a;font-weight:600">●&nbsp;Défini</span>&nbsp;'
-                '<a href="{}" style="font-size:11px;color:#6b7280">(modifier)</a>',
+                '<a href="{}#id_password" style="font-size:11px;color:#6b7280">(modifier)</a>',
                 change_url,
             )
         return format_html(
-            '<span style="color:#dc2626;font-weight:600">● Non défini</span>&nbsp;'
-            '<a href="{}" style="font-size:11px;color:#6b7280">(définir)</a>',
+            '<span style="color:#dc2626;font-weight:600">●&nbsp;Non défini</span>&nbsp;'
+            '<a href="{}#id_password" style="font-size:11px;color:#6b7280">(définir)</a>',
             change_url,
         )
 
