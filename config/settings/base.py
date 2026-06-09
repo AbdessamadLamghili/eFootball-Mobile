@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from decouple import config, Csv
 from datetime import timedelta
@@ -77,11 +78,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='efootball_rewards'),
-        'USER': config('DB_USER', default='efootball'),
-        'PASSWORD': config('DB_PASSWORD', default='efootball_secret'),
-        'HOST': config('DB_HOST', default='db'),
-        'PORT': config('DB_PORT', default='5432'),
+        'NAME': os.environ.get('DB_NAME') or config('DB_NAME', default='efootball_rewards'),
+        'USER': os.environ.get('DB_USER') or config('DB_USER', default='efootball'),
+        'PASSWORD': os.environ.get('DB_PASSWORD') or config('DB_PASSWORD', default='efootball_secret'),
+        'HOST': os.environ.get('DB_HOST') or config('DB_HOST', default='db'),
+        'PORT': os.environ.get('DB_PORT') or config('DB_PORT', default='5432'),
         'OPTIONS': {
             'connect_timeout': 10,
         },
@@ -175,11 +176,13 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
 }
 
-# Cache (Redis)
+# Cache (Redis) — os.environ.get() bypasses decouple parsing quirks;
+# docker-compose 'environment:' block sets REDIS_URL before the container starts.
+_REDIS_URL = os.environ.get('REDIS_URL') or config('REDIS_URL', default='redis://redis:6379/1')
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://redis:6379/1'),  # 'redis' = service Docker
+        'LOCATION': _REDIS_URL,
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }
