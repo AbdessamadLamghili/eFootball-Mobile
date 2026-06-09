@@ -80,8 +80,8 @@ DATABASES = {
         'NAME': config('DB_NAME', default='efootball_rewards'),
         'USER': config('DB_USER', default='efootball'),
         'PASSWORD': config('DB_PASSWORD', default='efootball_secret'),
-        'HOST': config('DB_HOST', default='db'),       # 'db' = nom du service Docker
-        'PORT': config('DB_PORT', default='5432'),      # port interne Docker
+        'HOST': config('DB_HOST', default='db'),
+        'PORT': config('DB_PORT', default='5432'),
         'OPTIONS': {
             'connect_timeout': 10,
         },
