@@ -4,8 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.urls import reverse
 from django.views import View
-from django.views.generic import UpdateView
 from django_ratelimit.decorators import ratelimit
 from datetime import timedelta, date
 
@@ -32,23 +33,33 @@ class RegisterView(View):
     def post(self, request):
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            ActivityLog.objects.create(
-                user=user,
-                action=ActivityLog.ACTION_REGISTER,
-                ip_address=_get_client_ip(request),
-                user_agent=request.META.get('HTTP_USER_AGENT', ''),
-            )
-            Notification.objects.create(
-                user=user,
-                title='Bienvenue sur eFootball Rewards !',
-                message='Votre compte a été créé. Vérifiez votre email pour l\'activer.',
-                notification_type=Notification.TYPE_INFO,
-            )
-            messages.success(
-                request,
-                'Compte créé ! Vérifiez votre email pour l\'activer.'
-            )
+            try:
+                user = form.save()
+            except Exception as e:
+                messages.error(request, 'Une erreur est survenue lors de la création du compte. Réessayez.')
+                return render(request, self.template_name, {'form': form})
+
+            try:
+                ActivityLog.objects.create(
+                    user=user,
+                    action=ActivityLog.ACTION_REGISTER,
+                    ip_address=_get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                )
+            except Exception:
+                pass
+
+            try:
+                Notification.objects.create(
+                    user=user,
+                    title='Bienvenue sur eFootball Rewards !',
+                    message="Votre compte a été créé. Vérifiez votre email pour l'activer.",
+                    notification_type=Notification.TYPE_INFO,
+                )
+            except Exception:
+                pass
+
+            messages.success(request, 'Compte créé ! Vérifiez votre email pour l\'activer.')
             return redirect('accounts:login')
         return render(request, self.template_name, {'form': form})
 
@@ -72,26 +83,36 @@ class LoginView(View):
             login(request, user)
             if not form.cleaned_data.get('remember_me'):
                 request.session.set_expiry(0)
-            ActivityLog.objects.create(
-                user=user,
-                action=ActivityLog.ACTION_LOGIN,
-                ip_address=_get_client_ip(request),
-                user_agent=request.META.get('HTTP_USER_AGENT', ''),
-            )
-            next_url = request.GET.get('next', 'dashboard:home')
-            return redirect(next_url)
+
+            try:
+                ActivityLog.objects.create(
+                    user=user,
+                    action=ActivityLog.ACTION_LOGIN,
+                    ip_address=_get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                )
+            except Exception:
+                pass
+
+            next_url = request.GET.get('next', '')
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                return redirect(next_url)
+            return redirect(reverse('dashboard:user_dashboard'))
         return render(request, self.template_name, {'form': form})
 
 
 @login_required
 def logout_view(request):
     if request.method == 'POST':
-        ActivityLog.objects.create(
-            user=request.user,
-            action=ActivityLog.ACTION_LOGOUT,
-            ip_address=_get_client_ip(request),
-            user_agent=request.META.get('HTTP_USER_AGENT', ''),
-        )
+        try:
+            ActivityLog.objects.create(
+                user=request.user,
+                action=ActivityLog.ACTION_LOGOUT,
+                ip_address=_get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            )
+        except Exception:
+            pass
         logout(request)
         messages.info(request, 'Vous avez été déconnecté.')
     return redirect('accounts:login')
@@ -106,18 +127,21 @@ def verify_email(request, token):
     user.is_email_verified = True
     user.save()
     token_obj.delete()
-    Notification.objects.create(
-        user=user,
-        title='Email vérifié !',
-        message='Votre adresse email a été vérifiée. Vous pouvez maintenant gagner des points.',
-        notification_type=Notification.TYPE_SUCCESS,
-    )
-    ActivityLog.objects.create(
-        user=user,
-        action=ActivityLog.ACTION_EMAIL_VERIFIED,
-        ip_address=_get_client_ip(request),
-        user_agent=request.META.get('HTTP_USER_AGENT', ''),
-    )
+    try:
+        Notification.objects.create(
+            user=user,
+            title='Email vérifié !',
+            message='Votre adresse email a été vérifiée. Vous pouvez maintenant gagner des points.',
+            notification_type=Notification.TYPE_SUCCESS,
+        )
+        ActivityLog.objects.create(
+            user=user,
+            action=ActivityLog.ACTION_EMAIL_VERIFIED,
+            ip_address=_get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        )
+    except Exception:
+        pass
     messages.success(request, 'Email vérifié ! Votre compte est maintenant actif.')
     return redirect('accounts:login')
 
@@ -130,14 +154,17 @@ class PasswordResetRequestView(View):
         form = PasswordResetRequestForm(request.POST)
         if form.is_valid():
             email = form.cleaned_data['email']
-            user = User.objects.get(email__iexact=email)
-            PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
-            token = PasswordResetToken.objects.create(
-                user=user,
-                expires_at=timezone.now() + timedelta(hours=1),
-            )
-            send_password_reset_email(user, token)
-            messages.success(request, 'Un email de réinitialisation a été envoyé.')
+            try:
+                user = User.objects.get(email__iexact=email)
+                PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
+                token = PasswordResetToken.objects.create(
+                    user=user,
+                    expires_at=timezone.now() + timedelta(hours=1),
+                )
+                send_password_reset_email(user, token)
+            except Exception:
+                pass
+            messages.success(request, 'Si un compte existe pour cet email, un lien a été envoyé.')
             return redirect('accounts:login')
         return render(request, self.template_name, {'form': form})
 
@@ -222,10 +249,9 @@ def claim_daily_reward(request):
     today = date.today()
 
     if DailyReward.objects.filter(user=user, date=today).exists():
-        messages.info(request, 'Vous avez déjà réclamé votre récompense quotidienne aujourd\'hui.')
+        messages.info(request, "Vous avez déjà réclamé votre récompense quotidienne aujourd'hui.")
         return redirect('dashboard:home')
 
-    # Streak logic
     yesterday = today - timedelta(days=1)
     had_yesterday = DailyReward.objects.filter(user=user, date=yesterday).exists()
 
@@ -268,12 +294,15 @@ def claim_daily_reward(request):
         bonus_points=bonus_points,
     )
 
-    Notification.objects.create(
-        user=user,
-        title='Récompense quotidienne réclamée !',
-        message=f'+{base_points} points gagnés. Streak : {streak} jours. {streak_message}',
-        notification_type=Notification.TYPE_POINTS,
-    )
+    try:
+        Notification.objects.create(
+            user=user,
+            title='Récompense quotidienne réclamée !',
+            message=f'+{base_points} points gagnés. Streak : {streak} jours. {streak_message}',
+            notification_type=Notification.TYPE_POINTS,
+        )
+    except Exception:
+        pass
 
     messages.success(request, f'+{base_points} points ! Streak : {streak} jour(s). {streak_message}')
     return redirect('dashboard:home')

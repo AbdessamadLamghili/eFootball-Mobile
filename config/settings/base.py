@@ -189,7 +189,7 @@ CACHES = {
     }
 }
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 SESSION_CACHE_ALIAS = 'default'
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
 SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
@@ -214,6 +214,9 @@ USER_LEVELS = {
     'platinum': 5000,
     'diamond': 15000,
 }
+
+# django-ratelimit: fail open so a Redis hiccup never blocks login/register
+RATELIMIT_FAIL_OPEN = True
 
 # CORS
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000', cast=Csv())
