@@ -31,6 +31,9 @@ print("[entrypoint] ERROR: PostgreSQL unreachable after 30 attempts. Aborting.")
 sys.exit(1)
 PYEOF
 
+echo "[entrypoint] Creating migrations..."
+python manage.py makemigrations --noinput
+
 echo "[entrypoint] Running migrations..."
 python manage.py migrate --noinput
 

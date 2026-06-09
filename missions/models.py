@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from datetime import timedelta
 
 
 class Mission(models.Model):
@@ -36,7 +37,7 @@ class Mission(models.Model):
         if self.mission_type == self.TYPE_DAILY:
             return qs.filter(completed_at__date=timezone.now().date()).exists()
         if self.mission_type == self.TYPE_WEEKLY:
-            week_start = timezone.now().date() - timezone.timedelta(days=timezone.now().weekday())
+            week_start = timezone.now().date() - timedelta(days=timezone.now().weekday())
             return qs.filter(completed_at__date__gte=week_start).exists()
         return qs.exists()
 
