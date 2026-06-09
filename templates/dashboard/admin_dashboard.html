@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Admin — eFootball Rewards{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="admin-header">
+        <h1><i class="fas fa-shield-alt"></i> Tableau de bord Admin</h1>
+        <div class="admin-nav">
+            <a href="{% url 'dashboard:admin_users' %}" class="btn btn-outline btn-sm"><i class="fas fa-users"></i> Utilisateurs</a>
+            <a href="{% url 'dashboard:admin_redemptions' %}" class="btn btn-outline btn-sm"><i class="fas fa-gift"></i> Demandes</a>
+            <a href="{% url 'admin:index' %}" class="btn btn-outline btn-sm"><i class="fas fa-cogs"></i> Django Admin</a>
+        </div>
+    </div>
+
+    <!-- KPI Stats -->
+    <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+            <div class="admin-stat-icon blue"><i class="fas fa-users"></i></div>
+            <div class="admin-stat-body">
+                <div class="admin-stat-value">{{ total_users|intcomma }}</div>
+                <div class="admin-stat-label">Utilisateurs total</div>
+                <div class="admin-stat-sub">+{{ new_users_week }} cette semaine</div>
+            </div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-icon green"><i class="fas fa-user-check"></i></div>
+            <div class="admin-stat-body">
+                <div class="admin-stat-value">{{ verified_users|intcomma }}</div>
+                <div class="admin-stat-label">Emails vérifiés</div>
+            </div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-icon yellow"><i class="fas fa-clock"></i></div>
+            <div class="admin-stat-body">
+                <div class="admin-stat-value">{{ pending_redemptions }}</div>
+                <div class="admin-stat-label">Demandes en attente</div>
+            </div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-icon purple"><i class="fas fa-star"></i></div>
+            <div class="admin-stat-body">
+                <div class="admin-stat-value">{{ total_points_distributed|intcomma }}</div>
+                <div class="admin-stat-label">Points distribués</div>
+            </div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-icon orange"><i class="fas fa-box-open"></i></div>
+            <div class="admin-stat-body">
+                <div class="admin-stat-value">{{ delivered_rewards }}</div>
+                <div class="admin-stat-label">Récompenses livrées</div>
+            </div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-icon red"><i class="fas fa-user-slash"></i></div>
+            <div class="admin-stat-body">
+                <div class="admin-stat-value">{{ active_users }}</div>
+                <div class="admin-stat-label">Utilisateurs actifs</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart + pending -->
+    <div class="admin-grid">
+        <!-- Registrations chart -->
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Inscriptions (14 derniers jours)</h3></div>
+            <div class="card-body">
+                <canvas id="registrationsChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Pending redemptions -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-hourglass-half"></i> Demandes en attente</h3>
+                <a href="{% url 'dashboard:admin_redemptions' %}?status=pending" class="btn btn-outline btn-sm">Tout voir</a>
+            </div>
+            <div class="card-body">
+                {% for r in pending_list %}
+                <div class="pending-item">
+                    <div class="pending-info">
+                        <div class="pending-user">{{ r.user.username }}</div>
+                        <div class="pending-reward">{{ r.reward.name }}</div>
+                        <div class="pending-date">{{ r.created_at|date:"d/m/Y H:i" }}</div>
+                    </div>
+                    <div class="pending-actions">
+                        <form method="post" action="{% url 'dashboard:admin_redemption_action' r.pk %}" style="display:inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="accept">
+                            <button type="submit" class="btn btn-success btn-xs" title="Accepter">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'dashboard:admin_redemption_action' r.pk %}" style="display:inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="reject">
+                            <button type="submit" class="btn btn-danger btn-xs" title="Refuser">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">Aucune demande en attente.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Top users + logs -->
+    <div class="admin-grid">
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-crown"></i> Top utilisateurs</h3></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>#</th><th>Utilisateur</th><th>Points</th><th>Niveau</th></tr></thead>
+                        <tbody>
+                            {% for p in top_users %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'dashboard:admin_user_detail' p.user.pk %}">{{ p.user.username }}</a>
+                                </td>
+                                <td>{{ p.points_balance|intcomma }}</td>
+                                <td><span class="badge badge-level-{{ p.level }}">{{ p.get_level_display }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-list"></i> Activité récente</h3></div>
+            <div class="card-body">
+                {% for log in recent_logs %}
+                <div class="log-item">
+                    <div class="log-icon action-{{ log.action }}"><i class="fas fa-dot-circle"></i></div>
+                    <div class="log-info">
+                        <div class="log-action">{{ log.get_action_display }}</div>
+                        <div class="log-user">{{ log.user.username|default:"—" }} · {{ log.ip_address|default:"" }}</div>
+                    </div>
+                    <div class="log-date">{{ log.created_at|date:"d/m H:i" }}</div>
+                </div>
+                {% empty %}
+                <p class="text-muted">Aucune activité.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const labels = [{% for d in registrations_data %}"{{ d.date }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const values = [{% for d in registrations_data %}{{ d.count }}{% if not forloop.last %},{% endif %}{% endfor %}];
+const ctx = document.getElementById('registrationsChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Inscriptions',
+            data: values,
+            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+            borderColor: '#3b82f6',
+            borderWidth: 1,
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends 'emails/base_email.html' %}
+{% block email_content %}
+<h2>Récompense refusée</h2>
+<p>Bonjour <strong>{{ user.username }}</strong>,</p>
+<p>Malheureusement, votre demande pour la récompense suivante a été <strong>refusée</strong> :</p>
+<div class="alert-box" style="border-color:#ef4444;">
+  <strong>{{ redemption.reward.name }}</strong><br>
+  Points dépensés : {{ redemption.points_spent }}
+  {% if redemption.admin_note %}<br>Motif : {{ redemption.admin_note }}{% endif %}
+</div>
+<p>Vos points ({{ redemption.points_spent }}) ont été <strong>remboursés</strong> sur votre compte.</p>
+<p>Si vous avez des questions, contactez notre équipe de support.</p>
+{% endblock %}

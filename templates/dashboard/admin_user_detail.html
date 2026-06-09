@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ target_user.username }} — Admin{% endblock %}
+{% block content %}
+<div class="page-container">
+    <div class="admin-header">
+        <h1><i class="fas fa-user"></i> {{ target_user.username }}</h1>
+        <a href="{% url 'dashboard:admin_users' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+
+    <div class="admin-user-layout">
+        <div class="card">
+            <div class="card-header"><h3>Informations</h3></div>
+            <div class="card-body">
+                <div class="info-row"><span>Email</span><strong>{{ target_user.email }}</strong></div>
+                <div class="info-row"><span>eFootball ID</span><strong>{{ target_user.efootball_id }}</strong></div>
+                <div class="info-row"><span>Points</span><strong>{{ profile.points_balance|intcomma }}</strong></div>
+                <div class="info-row"><span>Niveau</span><strong>{{ profile.get_level_display }}</strong></div>
+                <div class="info-row"><span>Streak</span><strong>{{ profile.current_streak }} jours</strong></div>
+                <div class="info-row"><span>Inscrit le</span><strong>{{ target_user.date_joined|date:"d/m/Y H:i" }}</strong></div>
+                <div class="info-row">
+                    <span>Statut</span>
+                    <strong>
+                        {% if target_user.is_suspended %}<span class="badge badge-danger">Suspendu</span>
+                        {% elif not target_user.is_email_verified %}<span class="badge badge-warning">Non vérifié</span>
+                        {% else %}<span class="badge badge-success">Actif</span>{% endif %}
+                    </strong>
+                </div>
+
+                <div class="action-buttons mt-3">
+                    {% if target_user.is_suspended %}
+                    <form method="post" action="{% url 'dashboard:admin_user_action' target_user.pk %}">
+                        {% csrf_token %}<input type="hidden" name="action" value="reactivate">
+                        <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check"></i> Réactiver</button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{% url 'dashboard:admin_user_action' target_user.pk %}">
+                        {% csrf_token %}<input type="hidden" name="action" value="suspend">
+                        <button type="submit" class="btn btn-warning btn-sm"><i class="fas fa-ban"></i> Suspendre</button>
+                    </form>
+                    {% endif %}
+                    {% if not target_user.is_superuser %}
+                    <form method="post" action="{% url 'dashboard:admin_user_action' target_user.pk %}"
+                          onsubmit="return confirm('Supprimer définitivement cet utilisateur ?')">
+                        {% csrf_token %}<input type="hidden" name="action" value="delete">
+                        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="card-header"><h3>Transactions</h3></div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>Date</th><th>Raison</th><th>Pts</th></tr></thead>
+                            <tbody>
+                                {% for tx in transactions %}
+                                <tr>
+                                    <td>{{ tx.created_at|date:"d/m H:i" }}</td>
+                                    <td>{{ tx.reason }}</td>
+                                    <td class="{% if tx.transaction_type == 'credit' %}text-success{% else %}text-error{% endif %}">
+                                        {% if tx.transaction_type == 'credit' %}+{% else %}−{% endif %}{{ tx.points }}
+                                    </td>
+                                </tr>
+                                {% empty %}<tr><td colspan="3" class="text-muted">Aucune transaction.</td></tr>{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header"><h3>Logs d'activité</h3></div>
+                <div class="card-body">
+                    {% for log in logs %}
+                    <div class="log-item">
+                        <div class="log-action">{{ log.get_action_display }}</div>
+                        <div class="log-date">{{ log.created_at|date:"d/m/Y H:i" }} — {{ log.ip_address }}</div>
+                    </div>
+                    {% empty %}<p class="text-muted">Aucun log.</p>{% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

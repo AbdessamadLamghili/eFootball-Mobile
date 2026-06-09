@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Catalogue des récompenses — eFootball Rewards{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-gift"></i> Catalogue des récompenses</h1>
+        <div class="user-points-display">
+            <i class="fas fa-star"></i> {{ user_points|intcomma }} points disponibles
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+        <a href="{% url 'rewards:catalog' %}" class="filter-btn {% if not category %}active{% endif %}">Tout</a>
+        {% for value, label in categories %}
+        <a href="?category={{ value }}" class="filter-btn {% if category == value %}active{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+
+    <!-- Grid -->
+    <div class="rewards-grid">
+        {% for reward in page %}
+        <div class="reward-card {% if not reward.is_available %}unavailable{% endif %}">
+            <div class="reward-image">
+                <img src="{{ reward.image_url }}" alt="{{ reward.name }}">
+                {% if not reward.is_available %}
+                <div class="reward-overlay">Indisponible</div>
+                {% endif %}
+                <span class="reward-category">{{ reward.get_category_display }}</span>
+            </div>
+            <div class="reward-body">
+                <h3 class="reward-name">{{ reward.name }}</h3>
+                <p class="reward-desc">{{ reward.description|truncatechars:80 }}</p>
+                <div class="reward-footer">
+                    <div class="reward-cost">
+                        <i class="fas fa-star"></i> {{ reward.points_cost|intcomma }} pts
+                    </div>
+                    {% if reward.quantity_available > 0 %}
+                    <span class="reward-qty">{{ reward.quantity_available }} restants</span>
+                    {% elif reward.quantity_available == -1 %}
+                    <span class="reward-qty">Illimitée</span>
+                    {% endif %}
+                </div>
+                <div class="reward-actions">
+                    <a href="{% url 'rewards:detail' reward.pk %}" class="btn btn-outline btn-sm">Détails</a>
+                    {% if reward.is_available and user_points >= reward.points_cost %}
+                    <form method="post" action="{% url 'rewards:redeem' reward.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-exchange-alt"></i> Échanger
+                        </button>
+                    </form>
+                    {% else %}
+                    <button class="btn btn-primary btn-sm" disabled>
+                        {% if not reward.is_available %}Indisponible{% else %}Insuffisant{% endif %}
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-gift"></i>
+            <p>Aucune récompense disponible dans cette catégorie.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page.has_other_pages %}
+    <div class="pagination">
+        {% if page.has_previous %}
+        <a href="?page={{ page.previous_page_number }}{% if category %}&category={{ category }}{% endif %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+        <span>Page {{ page.number }} / {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+        <a href="?page={{ page.next_page_number }}{% if category %}&category={{ category }}{% endif %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

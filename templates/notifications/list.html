@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Notifications — eFootball Rewards{% endblock %}
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-bell"></i> Notifications</h1>
+        {% if unread_count > 0 %}
+        <button class="btn btn-outline btn-sm" id="markAllReadBtn">
+            <i class="fas fa-check-double"></i> Tout marquer comme lu ({{ unread_count }})
+        </button>
+        {% endif %}
+    </div>
+    <div class="card">
+        <div class="card-body notifications-list">
+            {% for notif in notifications %}
+            <div class="notification-item {% if not notif.is_read %}unread{% endif %}" data-id="{{ notif.id }}">
+                <div class="notif-icon-lg type-{{ notif.notification_type }}">
+                    <i class="fas fa-{{ notif.icon }}"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">{{ notif.title }}</div>
+                    <div class="notification-msg">{{ notif.message }}</div>
+                    <div class="notification-date">{{ notif.created_at|date:"d/m/Y à H:i" }}</div>
+                </div>
+                {% if not notif.is_read %}
+                <button class="mark-read-btn btn btn-outline btn-xs" data-id="{{ notif.id }}">
+                    <i class="fas fa-check"></i>
+                </button>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="fas fa-bell-slash"></i>
+                <p>Aucune notification.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mark single read
+document.querySelectorAll('.mark-read-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.dataset.id;
+        await fetch(`/notifications/${id}/read/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCsrf()},
+        });
+        this.closest('.notification-item').classList.remove('unread');
+        this.remove();
+    });
+});
+
+// Mark all read
+const markAllBtn = document.getElementById('markAllReadBtn');
+if (markAllBtn) {
+    markAllBtn.addEventListener('click', async function() {
+        await fetch('/notifications/mark-all-read/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCsrf()},
+        });
+        document.querySelectorAll('.notification-item.unread').forEach(el => el.classList.remove('unread'));
+        document.querySelectorAll('.mark-read-btn').forEach(el => el.remove());
+        this.remove();
+    });
+}
+
+function getCsrf() {
+    return document.cookie.split('; ').find(r => r.startsWith('csrftoken'))?.split('=')[1] || '';
+}
+</script>
+{% endblock %}

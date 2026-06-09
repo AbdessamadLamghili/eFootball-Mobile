@@ -1,0 +1,12 @@
+{% extends 'emails/base_email.html' %}
+{% block email_content %}
+<h2>🎉 Votre récompense a été acceptée !</h2>
+<p>Bonjour <strong>{{ user.username }}</strong>,</p>
+<p>Bonne nouvelle ! Votre demande pour la récompense suivante a été <strong>acceptée</strong> :</p>
+<div class="alert-box" style="border-color:#22c55e;">
+  <strong>{{ redemption.reward.name }}</strong><br>
+  Points dépensés : {{ redemption.points_spent }}<br>
+  Date de demande : {{ redemption.created_at|date:"d/m/Y" }}
+</div>
+<p>Notre équipe va traiter votre demande dans les plus brefs délais.</p>
+{% endblock %}

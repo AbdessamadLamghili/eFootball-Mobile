@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Mon profil — eFootball Rewards{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="profile-layout">
+
+        <!-- Sidebar -->
+        <aside class="profile-sidebar">
+            <div class="profile-card">
+                <div class="profile-avatar-wrapper">
+                    <img src="{{ profile.avatar_url }}" alt="Avatar" class="profile-avatar-lg">
+                    <div class="profile-level-badge level-{{ profile.level }}">
+                        {{ user.profile.get_level_display }}
+                    </div>
+                </div>
+                <h2 class="profile-username">{{ user.username }}</h2>
+                <div class="profile-efid"><i class="fas fa-gamepad"></i> {{ user.efootball_id }}</div>
+                <div class="profile-email"><i class="fas fa-envelope"></i> {{ user.email }}
+                    {% if user.is_email_verified %}
+                    <span class="badge badge-success"><i class="fas fa-check"></i></span>
+                    {% else %}
+                    <span class="badge badge-warning"><i class="fas fa-exclamation"></i></span>
+                    {% endif %}
+                </div>
+                <div class="profile-joined">
+                    <i class="fas fa-calendar"></i> Membre depuis {{ user.date_joined|date:"d/m/Y" }}
+                </div>
+                <a href="{% url 'accounts:profile_edit' %}" class="btn btn-outline btn-sm mt-2">
+                    <i class="fas fa-edit"></i> Modifier le profil
+                </a>
+            </div>
+
+            <!-- Level progress -->
+            <div class="level-card">
+                <div class="level-header">
+                    <span class="level-name level-{{ level_info.current }}">{{ profile.get_level_display }}</span>
+                    {% if level_info.next %}
+                    <span class="level-next">→ {{ level_info.next|title }}</span>
+                    {% endif %}
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ level_info.progress }}%"></div>
+                </div>
+                <div class="level-points">
+                    {{ profile.total_points_earned|intcomma }} pts totaux
+                    {% if level_info.points_needed > 0 %}
+                    · {{ level_info.points_needed|intcomma }} pts pour le prochain niveau
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-card">
+                <div class="stat-row">
+                    <span><i class="fas fa-star"></i> Points actuels</span>
+                    <strong>{{ profile.points_balance|intcomma }}</strong>
+                </div>
+                <div class="stat-row">
+                    <span><i class="fas fa-fire"></i> Streak actuel</span>
+                    <strong>{{ profile.current_streak }} jours</strong>
+                </div>
+                <div class="stat-row">
+                    <span><i class="fas fa-trophy"></i> Meilleur streak</span>
+                    <strong>{{ profile.longest_streak }} jours</strong>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <div class="profile-main">
+
+            <!-- Transactions récentes -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-exchange-alt"></i> Historique des points</h3>
+                </div>
+                <div class="card-body">
+                    {% if transactions %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th><th>Raison</th><th>Points</th><th>Solde</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tx in transactions %}
+                                <tr>
+                                    <td>{{ tx.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ tx.reason }}</td>
+                                    <td class="{% if tx.transaction_type == 'credit' %}text-success{% else %}text-error{% endif %}">
+                                        {% if tx.transaction_type == 'credit' %}+{% else %}−{% endif %}{{ tx.points }}
+                                    </td>
+                                    <td>{{ tx.balance_after|intcomma }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Aucune transaction pour le moment.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Demandes de récompenses -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3><i class="fas fa-gift"></i> Mes demandes de récompenses</h3>
+                    <a href="{% url 'rewards:my_redemptions' %}" class="btn btn-outline btn-sm">Voir tout</a>
+                </div>
+                <div class="card-body">
+                    {% if redemptions %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr><th>Récompense</th><th>Points</th><th>Statut</th><th>Date</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for r in redemptions %}
+                                <tr>
+                                    <td>{{ r.reward.name }}</td>
+                                    <td>{{ r.points_spent }}</td>
+                                    <td><span class="badge badge-{{ r.status }}">{{ r.get_status_display }}</span></td>
+                                    <td>{{ r.created_at|date:"d/m/Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Aucune demande pour le moment.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

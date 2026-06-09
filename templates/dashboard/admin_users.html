@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Gestion utilisateurs — Admin{% endblock %}
+{% block content %}
+<div class="page-container">
+    <div class="admin-header">
+        <h1><i class="fas fa-users"></i> Gestion des utilisateurs</h1>
+        <a href="{% url 'dashboard:admin_dashboard' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <form method="get" class="search-form">
+                <div class="search-row">
+                    <input type="text" name="q" value="{{ search }}" placeholder="Rechercher par nom, email, ID..." class="form-control search-input">
+                    <select name="status" class="form-control select-sm">
+                        <option value="">Tous les statuts</option>
+                        <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>Email vérifié</option>
+                        <option value="unverified" {% if status_filter == 'unverified' %}selected{% endif %}>Non vérifié</option>
+                        <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspendu</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-search"></i> Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Utilisateur</th><th>Email</th><th>eFootball ID</th>
+                            <th>Points</th><th>Niveau</th><th>Statut</th><th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in page %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'dashboard:admin_user_detail' u.pk %}">{{ u.username }}</a>
+                            </td>
+                            <td>{{ u.email }}</td>
+                            <td>{{ u.efootball_id }}</td>
+                            <td>{{ u.profile.points_balance }}</td>
+                            <td><span class="badge badge-level-{{ u.profile.level }}">{{ u.profile.get_level_display }}</span></td>
+                            <td>
+                                {% if u.is_suspended %}
+                                <span class="badge badge-danger">Suspendu</span>
+                                {% elif not u.is_email_verified %}
+                                <span class="badge badge-warning">Non vérifié</span>
+                                {% else %}
+                                <span class="badge badge-success">Actif</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'dashboard:admin_user_detail' u.pk %}" class="btn btn-outline btn-xs">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if u.is_suspended %}
+                                <form method="post" action="{% url 'dashboard:admin_user_action' u.pk %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="reactivate">
+                                    <button type="submit" class="btn btn-success btn-xs"><i class="fas fa-check"></i></button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="{% url 'dashboard:admin_user_action' u.pk %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="suspend">
+                                    <button type="submit" class="btn btn-warning btn-xs"><i class="fas fa-ban"></i></button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center text-muted">Aucun utilisateur trouvé.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination -->
+            {% if page.has_other_pages %}
+            <div class="pagination">
+                {% if page.has_previous %}
+                <a href="?page={{ page.previous_page_number }}&q={{ search }}&status={{ status_filter }}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% endif %}
+                <span>Page {{ page.number }} / {{ page.paginator.num_pages }}</span>
+                {% if page.has_next %}
+                <a href="?page={{ page.next_page_number }}&q={{ search }}&status={{ status_filter }}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

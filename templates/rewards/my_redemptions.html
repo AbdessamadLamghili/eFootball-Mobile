@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Mes demandes — eFootball Rewards{% endblock %}
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-box"></i> Mes demandes de récompenses</h1>
+    </div>
+    <div class="filter-bar">
+        <a href="{% url 'rewards:my_redemptions' %}" class="filter-btn {% if not status_filter %}active{% endif %}">Tout</a>
+        {% for value, label in status_choices %}
+        <a href="?status={{ value }}" class="filter-btn {% if status_filter == value %}active{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+    <div class="card">
+        <div class="card-body">
+            {% for r in page %}
+            <div class="redemption-item">
+                <div class="redemption-img">
+                    <img src="{{ r.reward.image_url }}" alt="{{ r.reward.name }}" width="60">
+                </div>
+                <div class="redemption-info">
+                    <div class="redemption-name">{{ r.reward.name }}</div>
+                    <div class="redemption-pts"><i class="fas fa-star"></i> {{ r.points_spent }} pts dépensés</div>
+                    <div class="redemption-date">{{ r.created_at|date:"d/m/Y H:i" }}</div>
+                    {% if r.admin_note %}<div class="redemption-note"><i class="fas fa-comment"></i> {{ r.admin_note }}</div>{% endif %}
+                </div>
+                <div class="redemption-status">
+                    <span class="badge badge-{{ r.status }}">{{ r.get_status_display }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <p>Aucune demande.</p>
+                <a href="{% url 'rewards:catalog' %}" class="btn btn-primary">Voir le catalogue</a>
+            </div>
+            {% endfor %}
+        </div>
+        {% if page.has_other_pages %}
+        <div class="pagination">
+            {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&status={{ status_filter }}" class="btn btn-outline btn-sm"><i class="fas fa-chevron-left"></i></a>{% endif %}
+            <span>{{ page.number }} / {{ page.paginator.num_pages }}</span>
+            {% if page.has_next %}<a href="?page={{ page.next_page_number }}&status={{ status_filter }}" class="btn btn-outline btn-sm"><i class="fas fa-chevron-right"></i></a>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

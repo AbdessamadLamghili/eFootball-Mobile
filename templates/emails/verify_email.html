@@ -1,0 +1,15 @@
+{% extends 'emails/base_email.html' %}
+{% block email_content %}
+<h2>Vérifiez votre adresse email</h2>
+<p>Bonjour <strong>{{ user.username }}</strong>,</p>
+<p>Merci de vous être inscrit sur <strong>{{ site_name }}</strong> ! Pour activer votre compte et commencer à gagner des points, veuillez vérifier votre adresse email.</p>
+<div style="text-align:center;">
+  <a href="{{ verification_url }}" class="btn">✅ Vérifier mon email</a>
+</div>
+<hr class="divider">
+<div class="alert-box">
+  <strong>⚠️ Ce lien expire dans 24 heures.</strong><br>
+  Si vous n'avez pas créé de compte, ignorez cet email.
+</div>
+<p style="font-size:12px;color:#64748b;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>{{ verification_url }}</p>
+{% endblock %}

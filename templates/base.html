@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="eFootball Rewards - Gagnez des points et réclamez des récompenses">
+    <title>{% block title %}eFootball Rewards{% endblock %}</title>
+
+    <!-- CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="navbar-container">
+        <a href="{% url 'dashboard:home' %}" class="navbar-brand">
+            <span class="brand-icon"><i class="fas fa-futbol"></i></span>
+            <span class="brand-text">eFootball <span class="brand-accent">Rewards</span></span>
+        </a>
+
+        <div class="navbar-menu" id="navbarMenu">
+            <a href="{% url 'dashboard:user_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'user_dashboard' %}active{% endif %}">
+                <i class="fas fa-home"></i> Tableau de bord
+            </a>
+            <a href="{% url 'missions:list' %}" class="nav-link {% if 'missions' in request.resolver_match.namespace %}active{% endif %}">
+                <i class="fas fa-tasks"></i> Missions
+            </a>
+            <a href="{% url 'rewards:catalog' %}" class="nav-link {% if 'rewards' in request.resolver_match.namespace %}active{% endif %}">
+                <i class="fas fa-gift"></i> Récompenses
+            </a>
+        </div>
+
+        <div class="navbar-right">
+            <!-- Notifications -->
+            <div class="notif-dropdown">
+                <button class="notif-btn" id="notifBtn" aria-label="Notifications">
+                    <i class="fas fa-bell"></i>
+                    {% if unread_notifications_count > 0 %}
+                    <span class="notif-badge">{{ unread_notifications_count }}</span>
+                    {% endif %}
+                </button>
+                <div class="notif-panel" id="notifPanel">
+                    <div class="notif-header">
+                        <span>Notifications</span>
+                        <a href="#" class="mark-all-read" id="markAllRead">Tout lire</a>
+                    </div>
+                    <div class="notif-list">
+                        {% for notif in recent_notifications %}
+                        <div class="notif-item {% if not notif.is_read %}unread{% endif %}" data-id="{{ notif.id }}">
+                            <i class="fas fa-{{ notif.icon }} notif-icon type-{{ notif.notification_type }}"></i>
+                            <div class="notif-content">
+                                <div class="notif-title">{{ notif.title }}</div>
+                                <div class="notif-msg">{{ notif.message|truncatechars:60 }}</div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="notif-empty">Aucune notification</div>
+                        {% endfor %}
+                    </div>
+                    <a href="{% url 'notifications:list' %}" class="notif-footer">Voir tout</a>
+                </div>
+            </div>
+
+            <!-- Theme toggle -->
+            <button class="theme-toggle" id="themeToggle" aria-label="Changer le thème">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+
+            <!-- User menu -->
+            <div class="user-menu">
+                <button class="user-btn" id="userBtn">
+                    <img src="{{ user.profile.avatar_url }}" alt="Avatar" class="user-avatar">
+                    <span class="user-name">{{ user.username }}</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-info">
+                        <div class="user-points"><i class="fas fa-star"></i> {{ user.profile.points_balance }} pts</div>
+                        <div class="user-level level-{{ user.profile.level }}">{{ user.profile.get_level_display }}</div>
+                    </div>
+                    <a href="{% url 'accounts:profile' %}" class="dropdown-item">
+                        <i class="fas fa-user"></i> Mon profil
+                    </a>
+                    <a href="{% url 'rewards:my_redemptions' %}" class="dropdown-item">
+                        <i class="fas fa-box"></i> Mes demandes
+                    </a>
+                    {% if user.is_staff %}
+                    <div class="dropdown-divider"></div>
+                    <a href="{% url 'dashboard:admin_dashboard' %}" class="dropdown-item admin-link">
+                        <i class="fas fa-shield-alt"></i> Admin
+                    </a>
+                    {% endif %}
+                    <div class="dropdown-divider"></div>
+                    <form method="post" action="{% url 'accounts:logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="dropdown-item logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> Déconnexion
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Mobile menu toggle -->
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </div>
+</nav>
+{% else %}
+<!-- Public navbar -->
+<nav class="navbar navbar-public">
+    <div class="navbar-container">
+        <a href="{% url 'dashboard:home' %}" class="navbar-brand">
+            <span class="brand-icon"><i class="fas fa-futbol"></i></span>
+            <span class="brand-text">eFootball <span class="brand-accent">Rewards</span></span>
+        </a>
+        <div class="navbar-right">
+            <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon" id="themeIcon"></i></button>
+            <a href="{% url 'accounts:login' %}" class="btn btn-outline">Connexion</a>
+            <a href="{% url 'accounts:register' %}" class="btn btn-primary">Inscription</a>
+        </div>
+    </div>
+</nav>
+{% endif %}
+
+<!-- Messages -->
+{% if messages %}
+<div class="messages-container" id="messagesContainer">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}times-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+        {{ message }}
+        <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Main content -->
+<main class="main-content">
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-brand">
+            <i class="fas fa-futbol"></i> eFootball Rewards &copy; {% now "Y" %}
+        </div>
+        <div class="footer-links">
+            <a href="#">CGU</a>
+            <a href="#">Confidentialité</a>
+            <a href="#">Contact</a>
+        </div>
+    </div>
+</footer>
+
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

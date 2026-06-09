@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Missions — eFootball Rewards{% endblock %}
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-tasks"></i> Missions</h1>
+    </div>
+    <div class="filter-bar">
+        <a href="{% url 'missions:list' %}" class="filter-btn {% if not mission_type %}active{% endif %}">Tout</a>
+        {% for value, label in type_choices %}
+        <a href="?type={{ value }}" class="filter-btn {% if mission_type == value %}active{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+    <div class="missions-grid">
+        {% for item in missions_data %}
+        <div class="mission-card {% if item.completed %}completed{% endif %}">
+            <div class="mission-card-icon mission-{{ item.mission.mission_type }}">
+                <i class="fas fa-{{ item.mission.icon }}"></i>
+            </div>
+            <div class="mission-card-body">
+                <div class="mission-card-type">
+                    <span class="badge badge-{{ item.mission.mission_type }}">{{ item.mission.get_mission_type_display }}</span>
+                </div>
+                <h3 class="mission-card-title">{{ item.mission.title }}</h3>
+                <p class="mission-card-desc">{{ item.mission.description }}</p>
+                <div class="mission-card-reward">
+                    <i class="fas fa-star"></i> +{{ item.mission.reward_points }} points
+                </div>
+            </div>
+            <div class="mission-card-action">
+                {% if item.completed %}
+                <div class="completed-badge"><i class="fas fa-check-circle"></i> Accomplie</div>
+                {% else %}
+                <form method="post" action="{% url 'missions:complete' item.mission.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-bolt"></i> Compléter
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-tasks"></i>
+            <p>Aucune mission disponible.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

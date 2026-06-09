@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load humanize static %}
+
+{% block title %}Tableau de bord — eFootball Rewards{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+        <div class="welcome-left">
+            <img src="{{ profile.avatar_url }}" alt="Avatar" class="welcome-avatar">
+            <div>
+                <h1>Bonjour, <span class="accent">{{ user.username }}</span> !</h1>
+                <div class="welcome-meta">
+                    <span class="level-badge level-{{ profile.level }}">{{ profile.get_level_display }}</span>
+                    <span><i class="fas fa-fire"></i> {{ profile.current_streak }} jours de streak</span>
+                </div>
+            </div>
+        </div>
+        <div class="welcome-points">
+            <div class="points-display">
+                <span class="points-value">{{ profile.points_balance|intcomma }}</span>
+                <span class="points-label">points</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily reward claim -->
+    {% if not already_claimed_today %}
+    {% if user.is_email_verified %}
+    <div class="daily-reward-banner">
+        <div class="daily-left">
+            <i class="fas fa-sun"></i>
+            <div>
+                <h3>Récompense quotidienne disponible !</h3>
+                <p>Réclamez vos +10 points du jour et continuez votre streak.</p>
+            </div>
+        </div>
+        <form method="post" action="{% url 'accounts:claim_daily_reward' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-accent">
+                <i class="fas fa-hand-sparkles"></i> Réclamer +10 pts
+            </button>
+        </form>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        Vérifiez votre email pour gagner des points et réclamer des récompenses.
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="daily-reward-done">
+        <i class="fas fa-check-circle"></i>
+        Récompense quotidienne réclamée aujourd'hui. Revenez demain !
+        <span class="streak-info"><i class="fas fa-fire"></i> Streak : {{ profile.current_streak }} jours</span>
+    </div>
+    {% endif %}
+
+    <!-- Stats grid -->
+    <div class="stats-grid">
+        <div class="stat-widget">
+            <div class="stat-widget-icon"><i class="fas fa-star"></i></div>
+            <div class="stat-widget-info">
+                <div class="stat-widget-value">{{ profile.points_balance|intcomma }}</div>
+                <div class="stat-widget-label">Points disponibles</div>
+            </div>
+        </div>
+        <div class="stat-widget">
+            <div class="stat-widget-icon"><i class="fas fa-fire"></i></div>
+            <div class="stat-widget-info">
+                <div class="stat-widget-value">{{ profile.current_streak }}</div>
+                <div class="stat-widget-label">Streak actuel</div>
+            </div>
+        </div>
+        <div class="stat-widget">
+            <div class="stat-widget-icon"><i class="fas fa-gift"></i></div>
+            <div class="stat-widget-info">
+                <div class="stat-widget-value">{{ pending_redemptions_count }}</div>
+                <div class="stat-widget-label">Demandes en attente</div>
+            </div>
+        </div>
+        <div class="stat-widget">
+            <div class="stat-widget-icon"><i class="fas fa-trophy"></i></div>
+            <div class="stat-widget-info">
+                <div class="stat-widget-value">{{ profile.total_points_earned|intcomma }}</div>
+                <div class="stat-widget-label">Points totaux gagnés</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Level Progress -->
+    {% with level_info=profile.get_level_display_info %}
+    <div class="card level-progress-card">
+        <div class="level-progress-header">
+            <span class="level-badge level-{{ level_info.current }}">
+                <i class="fas fa-medal"></i> {{ profile.get_level_display }}
+            </span>
+            {% if level_info.next %}
+            <span class="level-next-label">Prochain : {{ level_info.next|title }}</span>
+            {% else %}
+            <span class="level-next-label">Niveau maximum atteint !</span>
+            {% endif %}
+        </div>
+        <div class="progress-bar-large">
+            <div class="progress-fill" style="width: {{ level_info.progress }}%">
+                <span class="progress-text">{{ level_info.progress }}%</span>
+            </div>
+        </div>
+        {% if level_info.points_needed > 0 %}
+        <p class="level-hint">{{ level_info.points_needed|intcomma }} points pour le prochain niveau</p>
+        {% endif %}
+    </div>
+    {% endwith %}
+
+    <div class="dashboard-grid">
+        <!-- Active missions -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-tasks"></i> Missions actives</h3>
+                <a href="{% url 'missions:list' %}" class="btn btn-outline btn-sm">Voir tout</a>
+            </div>
+            <div class="card-body">
+                {% for item in missions_with_status %}
+                <div class="mission-item {% if item.completed %}completed{% endif %}">
+                    <div class="mission-icon"><i class="fas fa-{{ item.mission.icon }}"></i></div>
+                    <div class="mission-info">
+                        <div class="mission-title">{{ item.mission.title }}</div>
+                        <div class="mission-meta">
+                            <span class="badge badge-{{ item.mission.mission_type }}">{{ item.mission.get_mission_type_display }}</span>
+                            <span class="mission-pts"><i class="fas fa-star"></i> +{{ item.mission.reward_points }}</span>
+                        </div>
+                    </div>
+                    <div class="mission-action">
+                        {% if item.completed %}
+                        <span class="completed-check"><i class="fas fa-check-circle"></i></span>
+                        {% else %}
+                        <form method="post" action="{% url 'missions:complete' item.mission.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-sm">Compléter</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">Aucune mission active.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent activity -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-history"></i> Activité récente</h3>
+            </div>
+            <div class="card-body">
+                {% for tx in recent_transactions %}
+                <div class="activity-item">
+                    <div class="activity-icon {% if tx.transaction_type == 'credit' %}credit{% else %}debit{% endif %}">
+                        <i class="fas fa-{% if tx.transaction_type == 'credit' %}plus{% else %}minus{% endif %}"></i>
+                    </div>
+                    <div class="activity-info">
+                        <div class="activity-reason">{{ tx.reason }}</div>
+                        <div class="activity-date">{{ tx.created_at|date:"d/m H:i" }}</div>
+                    </div>
+                    <div class="activity-points {% if tx.transaction_type == 'credit' %}text-success{% else %}text-error{% endif %}">
+                        {% if tx.transaction_type == 'credit' %}+{% else %}−{% endif %}{{ tx.points }}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">Aucune activité récente.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

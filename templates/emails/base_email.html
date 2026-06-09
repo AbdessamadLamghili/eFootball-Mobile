@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { margin: 0; padding: 0; background: #0f172a; font-family: 'Inter', Arial, sans-serif; color: #e2e8f0; }
+  .container { max-width: 600px; margin: 30px auto; background: #1e293b; border-radius: 12px; overflow: hidden; }
+  .header { background: linear-gradient(135deg, #1d4ed8, #2563eb); padding: 32px; text-align: center; }
+  .header h1 { margin: 0; color: #fff; font-size: 24px; }
+  .header .logo { font-size: 40px; color: #fbbf24; margin-bottom: 8px; }
+  .body { padding: 32px; }
+  .body h2 { color: #f1f5f9; margin-top: 0; }
+  .body p { color: #94a3b8; line-height: 1.6; }
+  .btn { display: inline-block; background: #2563eb; color: #fff !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 16px 0; }
+  .footer { background: #0f172a; padding: 20px 32px; text-align: center; color: #475569; font-size: 12px; }
+  .divider { border: none; border-top: 1px solid #334155; margin: 24px 0; }
+  .alert-box { background: #1d4ed820; border-left: 4px solid #2563eb; padding: 16px; border-radius: 4px; margin: 16px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">⚽</div>
+    <h1>eFootball Rewards</h1>
+  </div>
+  <div class="body">
+    {% block email_content %}{% endblock %}
+  </div>
+  <div class="footer">
+    <p>© {% now "Y" %} eFootball Rewards. Tous droits réservés.</p>
+    <p>Cet email a été envoyé automatiquement. Ne pas répondre.</p>
+  </div>
+</div>
+</body>
+</html>

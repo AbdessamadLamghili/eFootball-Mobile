@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ reward.name }} — eFootball Rewards{% endblock %}
+{% block content %}
+<div class="page-container">
+    <a href="{% url 'rewards:catalog' %}" class="back-link"><i class="fas fa-arrow-left"></i> Retour au catalogue</a>
+    <div class="reward-detail-layout">
+        <div class="reward-detail-image">
+            <img src="{{ reward.image_url }}" alt="{{ reward.name }}">
+        </div>
+        <div class="reward-detail-info">
+            <div class="reward-detail-category">{{ reward.get_category_display }}</div>
+            <h1>{{ reward.name }}</h1>
+            <p class="reward-detail-desc">{{ reward.description }}</p>
+            <div class="reward-detail-cost">
+                <i class="fas fa-star"></i> {{ reward.points_cost|intcomma }} points
+            </div>
+            {% if reward.quantity_available >= 0 %}
+            <div class="reward-detail-qty">
+                <i class="fas fa-box"></i> {{ reward.quantity_available }} disponibles
+            </div>
+            {% endif %}
+            <div class="reward-detail-balance">
+                Votre solde : <strong>{{ user_points|intcomma }} pts</strong>
+            </div>
+            {% if reward.is_available %}
+            {% if can_afford %}
+            <form method="post" action="{% url 'rewards:redeem' reward.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-exchange-alt"></i> Échanger pour {{ reward.points_cost|intcomma }} pts
+                </button>
+            </form>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                Vous avez besoin de {{ reward.points_cost|add:"-"|intcomma }} points supplémentaires.
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-error">Cette récompense est actuellement indisponible.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
