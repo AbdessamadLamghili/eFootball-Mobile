@@ -4,62 +4,43 @@ Plateforme de récompenses pour joueurs eFootball Mobile.
 
 ---
 
-## Lancer le projet
+## Lancer le projet avec Docker
 
-### Option 1 — Docker (recommandé)
+**Prérequis :** Docker Desktop installé et démarré.
 
-**Prérequis :** Docker Desktop installé et lancé.
+### Première fois (ou après un changement de code)
 
 ```bash
-# 1. Copier le fichier d'environnement
-copy .env.example .env
-
-# 2. Lancer tous les services
+# 1. Construire et lancer tous les services
 docker-compose up -d --build
 
-# 3. Appliquer les migrations
-docker-compose exec web python manage.py migrate
-
-# 4. Créer un compte administrateur
+# 2. Créer un compte administrateur
 docker-compose exec web python manage.py createsuperuser
-
-# 5. Ouvrir dans le navigateur
-# http://localhost
 ```
 
----
+> Les migrations et la collecte des fichiers statiques sont exécutées
+> **automatiquement** au démarrage du conteneur web.
 
-### Option 2 — En local (sans Docker)
-
-**Prérequis :** Python 3.13+, PostgreSQL, Redis.
+### Démarrage normal (après la première fois)
 
 ```bash
-# 1. Créer et activer l'environnement virtuel
-python -m venv .venv
-.venv\Scripts\activate
-
-# 2. Installer les dépendances
-pip install -r requirements.txt
-
-# 3. Copier et configurer l'environnement
-copy .env.example .env
-# Ouvrir .env et renseigner DB_HOST=localhost, DB_USER, DB_PASSWORD
-
-# 4. Créer la base de données PostgreSQL
-# (dans psql ou pgAdmin)
-# CREATE DATABASE efootball_rewards;
-
-# 5. Appliquer les migrations
-python manage.py migrate
-
-# 6. Créer un compte administrateur
-python manage.py createsuperuser
-
-# 7. Lancer le serveur
-python manage.py runserver
+docker-compose up -d
 ```
 
-Ouvrir [http://localhost:8000](http://localhost:8000)
+### Vérifier que tout fonctionne
+
+```bash
+docker-compose ps
+```
+
+Tous les services doivent être `Up` :
+
+```
+efootball_db      Up (healthy)
+efootball_redis   Up (healthy)
+efootball_web     Up
+efootball_nginx   Up
+```
 
 ---
 
@@ -67,40 +48,89 @@ Ouvrir [http://localhost:8000](http://localhost:8000)
 
 | Page | URL |
 |---|---|
-| Site principal | http://localhost:8000 |
-| Tableau de bord admin | http://localhost:8000/admin-panel/ |
-| Django admin | http://localhost:8000/admin/ |
-| Documentation API | http://localhost:8000/api/docs/ |
+| Site principal | http://localhost |
+| Tableau de bord admin | http://localhost/admin-panel/ |
+| Django admin | http://localhost/admin/ |
+| Documentation API | http://localhost/api/docs/ |
 
 ---
 
-## Variables d'environnement importantes
-
-Fichier `.env` à la racine du projet :
-
-| Variable | Description |
-|---|---|
-| `SECRET_KEY` | Clé secrète Django (obligatoire) |
-| `DEBUG` | `True` en développement, `False` en production |
-| `DB_*` | Connexion PostgreSQL |
-| `EMAIL_HOST_USER` | Email pour l'envoi des mails |
-| `EMAIL_HOST_PASSWORD` | Mot de passe de l'email |
-
-En développement, les emails s'affichent dans la console (pas besoin de configurer SMTP).
-
----
-
-## Lancer les tests
+## Commandes utiles
 
 ```bash
-pip install pytest-django pytest-cov
-pytest
+# Voir les logs en temps réel
+docker-compose logs -f web
+
+# Logs d'un service spécifique
+docker-compose logs -f db
+
+# Lancer les tests
+docker-compose exec web python manage.py test tests/
+
+# Accéder au shell Django
+docker-compose exec web python manage.py shell
+
+# Arrêter les services (sans supprimer les données)
+docker-compose down
+
+# Arrêter ET supprimer toutes les données (reset complet)
+docker-compose down -v
 ```
 
 ---
 
-## Arrêter Docker
+## Variables d'environnement importantes (fichier `.env`)
+
+| Variable | Description | Valeur Docker |
+|---|---|---|
+| `DB_HOST` | Hôte PostgreSQL | `db` ← nom du service Docker |
+| `DB_PORT` | Port PostgreSQL | `5432` ← port interne |
+| `REDIS_URL` | URL Redis | `redis://redis:6379/1` |
+| `DEBUG` | Mode debug | `True` |
+| `SECRET_KEY` | Clé secrète Django | À changer en production |
+
+> **Important :** Ne jamais mettre `localhost` pour `DB_HOST` dans Docker.
+> Le service PostgreSQL s'appelle `db` dans le réseau Docker interne.
+
+---
+
+## Lancer en local sans Docker
+
+**Prérequis :** Python 3.13+, PostgreSQL, Redis.
 
 ```bash
-docker-compose down
+# 1. Environnement virtuel
+python -m venv .venv
+.venv\Scripts\activate
+
+# 2. Dépendances
+pip install -r requirements.txt
+
+# 3. Variables d'environnement
+copy .env.example .env
+# Dans .env, changer DB_HOST=localhost et REDIS_URL=redis://localhost:6379/1
+
+# 4. Migrations
+python manage.py migrate
+
+# 5. Lancer
+python manage.py runserver
+```
+
+---
+
+## Résolution de problèmes
+
+**Le conteneur web redémarre en boucle ?**
+```bash
+docker-compose logs web
+```
+Chercher l'erreur dans les logs. Souvent : DB_HOST incorrect ou PostgreSQL pas encore prêt.
+
+**Erreur de connexion PostgreSQL ?**
+Vérifier dans `.env` : `DB_HOST=db` (et non `localhost`).
+
+**Page blanche ou erreur 500 ?**
+```bash
+docker-compose logs web | tail -50
 ```

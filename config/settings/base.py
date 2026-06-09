@@ -80,8 +80,8 @@ DATABASES = {
         'NAME': config('DB_NAME', default='efootball_rewards'),
         'USER': config('DB_USER', default='efootball'),
         'PASSWORD': config('DB_PASSWORD', default='efootball_secret'),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
+        'HOST': config('DB_HOST', default='db'),       # 'db' = nom du service Docker
+        'PORT': config('DB_PORT', default='5432'),      # port interne Docker
         'OPTIONS': {
             'connect_timeout': 10,
         },
@@ -179,7 +179,7 @@ SPECTACULAR_SETTINGS = {
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/1'),
+        'LOCATION': config('REDIS_URL', default='redis://redis:6379/1'),  # 'redis' = service Docker
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }

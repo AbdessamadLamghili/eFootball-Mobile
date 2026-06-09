@@ -1,9 +1,11 @@
 version: '3.9'
 
 services:
+
   db:
     image: postgres:16-alpine
     container_name: efootball_db
+    restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
@@ -11,39 +13,40 @@ services:
       POSTGRES_USER: ${DB_USER:-efootball}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-efootball_secret}
     ports:
-      - "5432:5432"
+      - "5433:5432"   # 5433 côté hôte pour éviter conflit avec Postgres local
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-efootball}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-efootball} -d ${DB_NAME:-efootball_rewards}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
     container_name: efootball_redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 5s
 
   web:
     build: .
     container_name: efootball_web
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --reload"
+    restart: unless-stopped
+    # entrypoint.sh gère : wait DB → migrate → collectstatic → gunicorn
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DJANGO_SETTINGS_MODULE=config.settings.development
     env_file:
       - .env
     depends_on:
@@ -55,10 +58,11 @@ services:
   nginx:
     image: nginx:alpine
     container_name: efootball_nginx
+    restart: unless-stopped
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
     ports:
       - "80:80"
     depends_on:
