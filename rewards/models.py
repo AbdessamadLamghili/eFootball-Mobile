@@ -124,7 +124,7 @@ class ExchangeRequest(models.Model):
         (STATUS_REJECTED, 'Refusé'),
     ]
 
-    EXCHANGE_RATE = 10        # 10 points = 1 coin
+    EXCHANGE_RATE = 2         # 1000 points = 500 coins (points / 2)
     MIN_EXCHANGE_POINTS = 1000  # minimum 1000 points per exchange
 
     user = models.ForeignKey(

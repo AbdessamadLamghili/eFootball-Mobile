@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Vérification du compte — eFootball Rewards{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card" style="max-width:560px;">
+        <div class="auth-header">
+            <div class="auth-logo"><i class="fas fa-shield-alt"></i></div>
+            <h1>Vérification du compte</h1>
+            <p>Faites vérifier votre compte pour accéder à toutes les fonctionnalités</p>
+        </div>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not existing_request %}
+        {# Step 1: no request yet #}
+        <div class="verification-info" style="background:#f0f9ff;border-radius:8px;padding:16px;margin-bottom:20px;">
+            <p><i class="fas fa-info-circle" style="color:#3b82f6;"></i>
+            <strong>Comment ça marche :</strong></p>
+            <ol style="padding-left:20px;line-height:1.8;">
+                <li>Cliquez sur <strong>Demander la vérification</strong></li>
+                <li>L'administrateur vous envoie un code à 6 chiffres par email</li>
+                <li>Revenez ici et entrez ce code</li>
+                <li>L'admin valide votre demande → votre compte est activé</li>
+            </ol>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="request">
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-paper-plane"></i> Demander la vérification
+            </button>
+        </form>
+
+        {% elif existing_request.status == 'pending' %}
+        {# Step 2: request sent, waiting for admin to send code #}
+        <div class="verification-info" style="background:#fef9c3;border-radius:8px;padding:16px;margin-bottom:20px;">
+            <p><i class="fas fa-clock" style="color:#d97706;"></i>
+            <strong>Demande envoyée !</strong> L'administrateur va vous envoyer un code par email sous peu.</p>
+            <p style="margin-top:8px;">Une fois le code reçu, entrez-le ci-dessous :</p>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="submit_code">
+            <div class="form-group">
+                <label for="code"><i class="fas fa-key"></i> Code de vérification (6 chiffres)</label>
+                <input type="text" name="code" id="code" maxlength="6" pattern="\d{6}"
+                       placeholder="123456" class="form-control" required
+                       style="font-size:1.5rem;letter-spacing:8px;text-align:center;">
+            </div>
+            <button type="submit" class="btn btn-success btn-block">
+                <i class="fas fa-check"></i> Valider le code
+            </button>
+        </form>
+        <hr>
+        <form method="post" style="margin-top:10px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="new_request">
+            <button type="submit" class="btn btn-outline btn-sm" style="width:100%;">
+                <i class="fas fa-redo"></i> Recommencer la vérification
+            </button>
+        </form>
+
+        {% elif existing_request.status == 'code_entered' %}
+        {# Step 3: code submitted, waiting for admin to validate #}
+        <div class="verification-info" style="background:#dcfce7;border-radius:8px;padding:16px;margin-bottom:20px;">
+            <p><i class="fas fa-hourglass-half" style="color:#16a34a;"></i>
+            <strong>Code soumis !</strong> Votre demande est en attente de validation par l'administrateur.</p>
+            <p style="margin-top:8px;">Votre compte sera activé dès que l'admin valide votre demande.
+            Revenez vérifier plus tard.</p>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="new_request">
+            <button type="submit" class="btn btn-outline btn-sm" style="width:100%;">
+                <i class="fas fa-redo"></i> Soumettre une nouvelle demande
+            </button>
+        </form>
+
+        {% elif existing_request.status == 'rejected' %}
+        {# Rejected: allow retry #}
+        <div class="verification-info" style="background:#fee2e2;border-radius:8px;padding:16px;margin-bottom:20px;">
+            <p><i class="fas fa-times-circle" style="color:#dc2626;"></i>
+            <strong>Demande refusée.</strong> Vous pouvez soumettre une nouvelle demande.</p>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="new_request">
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-redo"></i> Nouvelle demande de vérification
+            </button>
+        </form>
+        {% endif %}
+
+        <div style="margin-top:20px;text-align:center;">
+            <a href="{% url 'dashboard:user_dashboard' %}">← Retour au tableau de bord</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -57,8 +57,13 @@ def submit_mission(request, pk):
         return redirect('missions:list')
 
     if mission.is_manual:
-        # Create a pending request for admin review
-        MissionRequest.objects.create(user=user, mission=mission)
+        instagram_username = ''
+        if mission.mission_code == Mission.CODE_INSTAGRAM:
+            instagram_username = request.POST.get('instagram_username', '').strip().lstrip('@')
+            if not instagram_username:
+                messages.error(request, 'Veuillez entrer votre nom d\'utilisateur Instagram.')
+                return redirect('missions:list')
+        MissionRequest.objects.create(user=user, mission=mission, instagram_username=instagram_username)
         Notification.objects.create(
             user=user,
             title='Demande de mission envoyée',

@@ -6,6 +6,12 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 
+DEFAULT_AVATARS = [f'/static/images/avatars/default_{i}.svg' for i in range(1, 11)]
+
+
+def get_random_default_avatar():
+    return random.choice(DEFAULT_AVATARS)
+
 
 def generate_invitation_code():
     number = random.randint(1000, 9999)
@@ -100,6 +106,7 @@ class UserProfile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    default_avatar = models.CharField(max_length=60, blank=True, default='')
     points_balance = models.PositiveIntegerField(default=0)
     total_points_earned = models.PositiveIntegerField(default=0)
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default=LEVEL_BRONZE)
@@ -125,6 +132,8 @@ class UserProfile(models.Model):
     def save(self, *args, **kwargs):
         if not self.invitation_code:
             self.invitation_code = generate_invitation_code()
+        if not self.default_avatar:
+            self.default_avatar = get_random_default_avatar()
         super().save(*args, **kwargs)
 
     def add_points(self, points, reason='', transaction_category=None):
@@ -195,7 +204,7 @@ class UserProfile(models.Model):
     def avatar_url(self):
         if self.avatar:
             return self.avatar.url
-        return '/static/images/default-avatar.png'
+        return self.default_avatar or get_random_default_avatar()
 
     def get_monthly_invitation_count(self):
         from django.utils import timezone
@@ -304,3 +313,36 @@ class DailyReward(models.Model):
 
     def __str__(self):
         return f"{self.user.username} — {self.date} (+{self.points_earned} pts)"
+
+
+class AccountVerificationRequest(models.Model):
+    STATUS_PENDING = 'pending'
+    STATUS_CODE_ENTERED = 'code_entered'
+    STATUS_VERIFIED = 'verified'
+    STATUS_REJECTED = 'rejected'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'En attente'),
+        (STATUS_CODE_ENTERED, 'Code soumis'),
+        (STATUS_VERIFIED, 'Vérifié'),
+        (STATUS_REJECTED, 'Refusé'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_requests')
+    verification_code = models.CharField(max_length=6, blank=True)  # admin generates & sends manually
+    entered_code = models.CharField(max_length=6, blank=True)       # user enters this
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Demande de vérification'
+        verbose_name_plural = 'Demandes de vérification'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Vérification de {self.user.username} ({self.get_status_display()})"
+
+    def generate_code(self):
+        self.verification_code = str(random.randint(100000, 999999))
+        self.save(update_fields=['verification_code'])

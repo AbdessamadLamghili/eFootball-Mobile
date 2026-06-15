@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+
+# Claude Code internal files
+.claude/worktrees/
+
 .Python
 *.so
 *.egg

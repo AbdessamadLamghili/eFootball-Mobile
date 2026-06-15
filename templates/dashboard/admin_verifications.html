@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Vérifications de comptes — Admin{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h1><i class="fas fa-shield-alt"></i> Vérifications de comptes</h1>
+            <p class="page-subtitle">Validez les demandes de vérification des utilisateurs</p>
+        </div>
+        <a href="{% url 'dashboard:admin_dashboard' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-arrow-left"></i> Tableau de bord
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if verifications %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Utilisateur</th>
+                            <th>Email</th>
+                            <th>Code à envoyer</th>
+                            <th>Code saisi</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ver in verifications %}
+                        <tr>
+                            <td><strong>{{ ver.user.username }}</strong></td>
+                            <td>{{ ver.user.email }}</td>
+                            <td>
+                                {% if ver.verification_code %}
+                                <span style="font-family:monospace;font-size:1.1rem;background:#f3f4f6;padding:4px 8px;border-radius:4px;">
+                                    {{ ver.verification_code }}
+                                </span>
+                                <br><small style="color:#6b7280;">Envoyez ce code à l'utilisateur par email</small>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ver.entered_code %}
+                                <span style="font-family:monospace;font-size:1.1rem;background:#dcfce7;padding:4px 8px;border-radius:4px;">
+                                    {{ ver.entered_code }}
+                                </span>
+                                {% if ver.verification_code and ver.entered_code == ver.verification_code %}
+                                <br><small style="color:#16a34a;"><i class="fas fa-check"></i> Codes identiques</small>
+                                {% elif ver.verification_code %}
+                                <br><small style="color:#dc2626;"><i class="fas fa-times"></i> Codes différents</small>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">En attente…</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ver.status == 'pending' %}
+                                <span class="badge badge-warning">En attente</span>
+                                {% elif ver.status == 'code_entered' %}
+                                <span class="badge badge-info">Code soumis</span>
+                                {% elif ver.status == 'verified' %}
+                                <span class="badge badge-success">Vérifié</span>
+                                {% elif ver.status == 'rejected' %}
+                                <span class="badge badge-danger">Refusé</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ ver.created_at|date:"d/m/Y H:i" }}</small></td>
+                            <td>
+                                {% if ver.status != 'verified' %}
+                                <form method="post" action="{% url 'dashboard:admin_verification_action' ver.pk %}"
+                                      style="display:inline;" onsubmit="return confirm('Valider ce compte ?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="verify">
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-check"></i> Valider
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'dashboard:admin_verification_action' ver.pk %}"
+                                      style="display:inline;" onsubmit="return confirm('Refuser cette demande ?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-times"></i> Refuser
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-shield-alt"></i>
+                <p>Aucune demande de vérification en attente.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
