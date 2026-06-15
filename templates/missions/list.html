@@ -44,11 +44,31 @@
                 {% elif mission.mission_code == 'consecutive_3_days' or mission.mission_code == 'consecutive_7_days' or mission.mission_code == 'complete_profile' or mission.mission_code == 'invite_friends' or mission.mission_code == 'all_missions' %}
                     <div class="auto-badge"><i class="fas fa-info-circle"></i> Validation automatique</div>
                 {% else %}
+                    {% if mission.mission_code == 'instagram_follow' %}
+                    <form method="post" action="{% url 'missions:submit' mission.pk %}">
+                        {% csrf_token %}
+                        <div class="form-group" style="margin-bottom:8px;">
+                            <input type="text" name="instagram_username"
+                                   placeholder="Votre nom d'utilisateur Instagram (@username)"
+                                   class="form-control form-control-sm" required
+                                   style="max-width:280px;">
+                        </div>
+                        {% if mission.link %}
+                        <a href="{{ mission.link }}" target="_blank" class="btn btn-outline btn-sm"
+                           style="margin-bottom:6px;">
+                            <i class="fab fa-instagram"></i> Suivre sur Instagram
+                        </a>
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-paper-plane"></i> Envoyer la demande
+                        </button>
+                    </form>
+                    {% else %}
                     <form method="post" action="{% url 'missions:submit' mission.pk %}">
                         {% csrf_token %}
                         {% if mission.is_manual %}
                         <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="fas fa-paper-plane"></i> J'ai suivi
+                            <i class="fas fa-paper-plane"></i> J'ai complété
                         </button>
                         {% else %}
                         <button type="submit" class="btn btn-primary btn-sm">
@@ -56,6 +76,7 @@
                         </button>
                         {% endif %}
                     </form>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>

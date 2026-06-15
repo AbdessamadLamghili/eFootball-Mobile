@@ -24,4 +24,6 @@ urlpatterns = [
     # Mission request management
     path('admin-panel/mission-requests/', views.admin_mission_requests, name='admin_mission_requests'),
     path('admin-panel/mission-requests/<int:pk>/action/', views.admin_mission_request_action, name='admin_mission_request_action'),
+    path('admin-panel/verifications/', views.admin_verifications, name='admin_verifications'),
+    path('admin-panel/verifications/<int:pk>/action/', views.admin_verification_action, name='admin_verification_action'),
 ]

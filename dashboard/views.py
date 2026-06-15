@@ -533,3 +533,58 @@ def admin_mission_request_action(request, pk):
         messages.success(request, 'Mission refusée.')
 
     return redirect('dashboard:admin_mission_requests')
+
+
+# ─── Account Verification Admin ───────────────────────────────────────────────
+
+@login_required
+@user_passes_test(is_admin)
+def admin_verifications(request):
+    from accounts.models import AccountVerificationRequest
+    verifications = AccountVerificationRequest.objects.select_related('user').exclude(
+        status=AccountVerificationRequest.STATUS_VERIFIED
+    ).order_by('-created_at')
+    return render(request, 'dashboard/admin_verifications.html', {
+        'verifications': verifications,
+    })
+
+
+@login_required
+@user_passes_test(is_admin)
+def admin_verification_action(request, pk):
+    from accounts.models import AccountVerificationRequest
+    from accounts.views import _award_invitation_points
+
+    if request.method != 'POST':
+        return redirect('dashboard:admin_verifications')
+
+    ver_request = get_object_or_404(AccountVerificationRequest, pk=pk)
+    action = request.POST.get('action')
+
+    if action == 'verify':
+        user = ver_request.user
+        user.is_email_verified = True
+        user.save(update_fields=['is_email_verified'])
+        ver_request.status = AccountVerificationRequest.STATUS_VERIFIED
+        ver_request.save()
+        _award_invitation_points(user)
+        Notification.objects.create(
+            user=user,
+            title='Compte vérifié !',
+            message='Votre compte a été vérifié par l\'administrateur. Vous pouvez maintenant gagner des points et compléter des missions.',
+            notification_type=Notification.TYPE_SUCCESS,
+        )
+        messages.success(request, f'Compte de {user.username} vérifié avec succès.')
+
+    elif action == 'reject':
+        ver_request.status = AccountVerificationRequest.STATUS_REJECTED
+        ver_request.save()
+        Notification.objects.create(
+            user=ver_request.user,
+            title='Vérification refusée',
+            message='Votre demande de vérification a été refusée. Contactez le support ou réessayez.',
+            notification_type=Notification.TYPE_ERROR,
+        )
+        messages.warning(request, 'Demande de vérification refusée.')
+
+    return redirect('dashboard:admin_verifications')

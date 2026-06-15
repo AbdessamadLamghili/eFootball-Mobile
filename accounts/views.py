@@ -10,7 +10,7 @@ from django.views import View
 from django_ratelimit.decorators import ratelimit
 from datetime import timedelta, date
 
-from .models import User, UserProfile, EmailVerificationToken, PasswordResetToken, DailyReward, PointTransaction
+from .models import User, UserProfile, EmailVerificationToken, PasswordResetToken, DailyReward, PointTransaction, AccountVerificationRequest
 from .forms import (
     RegisterForm, LoginForm, PasswordResetRequestForm,
     PasswordResetConfirmForm, ProfileUpdateForm, AvatarUpdateForm,
@@ -484,3 +484,60 @@ def _check_all_missions(user):
             message=f'Félicitations ! Vous avez terminé toutes les missions. +{all_missions_mission.reward_points} points bonus.',
             notification_type=Notification.TYPE_POINTS,
         )
+
+
+# ─── Account Verification Views ───────────────────────────────────────────────
+
+@login_required
+def verification_request_view(request):
+    """User requests account verification — admin sends code manually by email."""
+    user = request.user
+    if user.is_email_verified:
+        messages.info(request, 'Votre compte est déjà vérifié.')
+        return redirect('dashboard:user_dashboard')
+
+    # Check if there's already a pending/submitted request
+    existing = AccountVerificationRequest.objects.filter(
+        user=user
+    ).exclude(status=AccountVerificationRequest.STATUS_REJECTED).order_by('-created_at').first()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'request' and (not existing or existing.status == AccountVerificationRequest.STATUS_REJECTED):
+            req = AccountVerificationRequest.objects.create(user=user)
+            req.generate_code()
+            messages.success(
+                request,
+                'Votre demande a été envoyée. L\'admin vous enverra un code à 6 chiffres par email. '
+                'Revenez ici pour saisir ce code.'
+            )
+            return redirect('accounts:verification_request')
+
+        if action == 'submit_code' and existing and existing.status == AccountVerificationRequest.STATUS_PENDING:
+            code = request.POST.get('code', '').strip()
+            if not code:
+                messages.error(request, 'Veuillez entrer le code reçu par email.')
+            else:
+                existing.entered_code = code
+                existing.status = AccountVerificationRequest.STATUS_CODE_ENTERED
+                existing.save()
+                messages.success(
+                    request,
+                    'Code soumis. En attente de validation par l\'administrateur. '
+                    'Votre compte sera activé dès que l\'admin valide votre demande.'
+                )
+            return redirect('accounts:verification_request')
+
+        if action == 'new_request':
+            # Allow user to restart the process
+            if existing:
+                existing.delete()
+            req = AccountVerificationRequest.objects.create(user=user)
+            req.generate_code()
+            messages.success(request, 'Nouvelle demande de vérification envoyée.')
+            return redirect('accounts:verification_request')
+
+    return render(request, 'accounts/verification_request.html', {
+        'existing_request': existing,
+    })
