@@ -1,3 +1,4 @@
+import random
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
@@ -10,12 +11,12 @@ from django.views import View
 from django_ratelimit.decorators import ratelimit
 from datetime import timedelta, date
 
-from .models import User, UserProfile, EmailVerificationToken, PasswordResetToken, DailyReward, PointTransaction, AccountVerificationRequest
+from .models import User, UserProfile, EmailVerificationToken, PasswordResetToken, PasswordResetCode, DailyReward, PointTransaction, AccountVerificationRequest
 from .forms import (
     RegisterForm, LoginForm, PasswordResetRequestForm,
-    PasswordResetConfirmForm, ProfileUpdateForm, AvatarUpdateForm,
+    PasswordResetCodeForm, PasswordResetConfirmForm, ProfileUpdateForm, AvatarUpdateForm,
 )
-from .emails import send_password_reset_email
+from .emails import send_password_reset_code_email
 from notifications.models import Notification
 from logs.models import ActivityLog
 from django.conf import settings
@@ -176,54 +177,116 @@ def verify_email(request, token):
 class PasswordResetRequestView(View):
     template_name = 'accounts/password_reset_request.html'
 
-    @method_decorator(ratelimit(key='ip', rate='3/m', block=True))
+    def get(self, request):
+        return render(request, self.template_name, {'form': PasswordResetRequestForm()})
+
+    @method_decorator(ratelimit(key='ip', rate='5/h', block=True))
     def post(self, request):
         form = PasswordResetRequestForm(request.POST)
         if form.is_valid():
             email = form.cleaned_data['email']
+            user = User.objects.get(email__iexact=email)
+            # Invalider les anciens codes non utilisés
+            PasswordResetCode.objects.filter(user=user, is_used=False).update(is_used=True)
+            code_obj = PasswordResetCode.objects.create(
+                user=user,
+                code=str(random.randint(100000, 999999)),
+                expires_at=timezone.now() + timedelta(minutes=15),
+            )
             try:
-                user = User.objects.get(email__iexact=email)
-                PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
-                token = PasswordResetToken.objects.create(
-                    user=user,
-                    expires_at=timezone.now() + timedelta(hours=1),
-                )
-                send_password_reset_email(user, token)
+                send_password_reset_code_email(user, code_obj.code)
             except Exception:
                 pass
-            messages.success(request, 'Si un compte existe pour cet email, un lien a été envoyé.')
-            return redirect('accounts:login')
+            request.session['pwd_reset_code_id'] = code_obj.pk
+            messages.success(request, f'Un code à 6 chiffres a été envoyé à {email}. Valable 15 minutes.')
+            return redirect('accounts:password_reset_verify')
         return render(request, self.template_name, {'form': form})
 
+
+class PasswordResetVerifyView(View):
+    template_name = 'accounts/password_reset_verify.html'
+
     def get(self, request):
-        return render(request, self.template_name, {'form': PasswordResetRequestForm()})
+        if 'pwd_reset_code_id' not in request.session:
+            return redirect('accounts:password_reset')
+        return render(request, self.template_name, {'form': PasswordResetCodeForm()})
+
+    @method_decorator(ratelimit(key='ip', rate='10/h', block=True))
+    def post(self, request):
+        code_id = request.session.get('pwd_reset_code_id')
+        if not code_id:
+            messages.error(request, 'Session expirée. Recommencez la procédure.')
+            return redirect('accounts:password_reset')
+
+        try:
+            code_obj = PasswordResetCode.objects.get(pk=code_id)
+        except PasswordResetCode.DoesNotExist:
+            messages.error(request, 'Session invalide. Recommencez.')
+            return redirect('accounts:password_reset')
+
+        if not code_obj.is_valid():
+            del request.session['pwd_reset_code_id']
+            if code_obj.attempts >= PasswordResetCode.MAX_ATTEMPTS:
+                messages.error(request, 'Trop de tentatives incorrectes. Faites une nouvelle demande.')
+            else:
+                messages.error(request, 'Ce code a expiré. Faites une nouvelle demande.')
+            return redirect('accounts:password_reset')
+
+        form = PasswordResetCodeForm(request.POST)
+        if form.is_valid():
+            entered = form.cleaned_data['code']
+            if entered == code_obj.code:
+                request.session['pwd_reset_verified_id'] = code_obj.pk
+                del request.session['pwd_reset_code_id']
+                return redirect('accounts:password_reset_new')
+            else:
+                code_obj.increment_attempts()
+                remaining = PasswordResetCode.MAX_ATTEMPTS - code_obj.attempts
+                if remaining <= 0:
+                    messages.error(request, 'Trop de tentatives. Faites une nouvelle demande.')
+                    del request.session['pwd_reset_code_id']
+                    return redirect('accounts:password_reset')
+                messages.error(request, f'Code incorrect. Il vous reste {remaining} tentative(s).')
+        return render(request, self.template_name, {'form': form})
 
 
-class PasswordResetConfirmView(View):
+class PasswordResetNewPasswordView(View):
     template_name = 'accounts/password_reset_confirm.html'
 
-    def get(self, request, token):
-        token_obj = get_object_or_404(PasswordResetToken, token=token)
-        if not token_obj.is_valid():
-            messages.error(request, 'Ce lien de réinitialisation a expiré.')
-            return redirect('accounts:password_reset')
-        return render(request, self.template_name, {'form': PasswordResetConfirmForm(), 'token': token})
+    def _get_code_obj(self, request):
+        verified_id = request.session.get('pwd_reset_verified_id')
+        if not verified_id:
+            return None
+        try:
+            code_obj = PasswordResetCode.objects.get(pk=verified_id, is_used=False)
+            if timezone.now() > code_obj.expires_at:
+                return None
+            return code_obj
+        except PasswordResetCode.DoesNotExist:
+            return None
 
-    def post(self, request, token):
-        token_obj = get_object_or_404(PasswordResetToken, token=token)
-        if not token_obj.is_valid():
-            messages.error(request, 'Ce lien a expiré.')
+    def get(self, request):
+        if not self._get_code_obj(request):
+            messages.error(request, 'Session expirée. Recommencez la procédure.')
+            return redirect('accounts:password_reset')
+        return render(request, self.template_name, {'form': PasswordResetConfirmForm()})
+
+    def post(self, request):
+        code_obj = self._get_code_obj(request)
+        if not code_obj:
+            messages.error(request, 'Session expirée. Recommencez.')
             return redirect('accounts:password_reset')
         form = PasswordResetConfirmForm(request.POST)
         if form.is_valid():
-            user = token_obj.user
+            user = code_obj.user
             user.set_password(form.cleaned_data['password'])
             user.save()
-            token_obj.is_used = True
-            token_obj.save()
-            messages.success(request, 'Mot de passe réinitialisé avec succès. Vous pouvez vous connecter.')
+            code_obj.is_used = True
+            code_obj.save(update_fields=['is_used'])
+            del request.session['pwd_reset_verified_id']
+            messages.success(request, 'Mot de passe modifié avec succès. Vous pouvez vous connecter.')
             return redirect('accounts:login')
-        return render(request, self.template_name, {'form': form, 'token': token})
+        return render(request, self.template_name, {'form': form})
 
 
 @login_required

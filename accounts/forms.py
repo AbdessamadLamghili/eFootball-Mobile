@@ -99,8 +99,30 @@ class PasswordResetRequestForm(forms.Form):
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if not User.objects.filter(email__iexact=email).exists():
-            raise ValidationError('Aucun compte associé à cet email.')
+            raise ValidationError('Aucun compte trouvé avec cette adresse email.')
         return email
+
+
+class PasswordResetCodeForm(forms.Form):
+    code = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '123456',
+            'maxlength': '6',
+            'pattern': r'\d{6}',
+            'autocomplete': 'one-time-code',
+            'style': 'font-size:1.6rem;letter-spacing:10px;text-align:center;',
+        }),
+        label='Code de vérification',
+        min_length=6,
+        max_length=6,
+    )
+
+    def clean_code(self):
+        code = self.cleaned_data.get('code', '').strip()
+        if not code.isdigit():
+            raise ValidationError('Le code doit contenir uniquement des chiffres.')
+        return code
 
 
 class PasswordResetConfirmForm(forms.Form):

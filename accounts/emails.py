@@ -31,14 +31,13 @@ def send_verification_email(user, token):
     )
 
 
-def send_password_reset_email(user, token):
-    reset_url = f"{settings.SITE_URL}/accounts/password-reset/confirm/{token.token}/"
+def send_password_reset_code_email(user, code):
     _send_email(
-        subject=f'[{settings.SITE_NAME}] Réinitialisation de votre mot de passe',
+        subject=f'[{settings.SITE_NAME}] Code de réinitialisation : {code}',
         template_name='emails/password_reset.html',
         context={
             'user': user,
-            'reset_url': reset_url,
+            'code': code,
             'site_name': settings.SITE_NAME,
         },
         recipient_email=user.email,
