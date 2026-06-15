@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Missions — Admin{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h1><i class="fas fa-tasks"></i> Gestion des missions</h1>
+            <p class="page-subtitle">Ajoutez, modifiez ou supprimez des missions</p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'dashboard:admin_mission_requests' %}" class="btn btn-outline btn-sm">
+                <i class="fas fa-inbox"></i> Demandes en attente
+            </a>
+            <a href="{% url 'dashboard:admin_mission_add' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Ajouter une mission
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if missions %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Titre</th>
+                            <th>Code</th>
+                            <th>Points</th>
+                            <th>Validation</th>
+                            <th>Statut</th>
+                            <th>Créée le</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mission in missions %}
+                        <tr class="{% if not mission.is_active %}row-disabled{% endif %}">
+                            <td>
+                                <i class="fas fa-{{ mission.icon }}"></i>
+                                <strong>{{ mission.title }}</strong>
+                            </td>
+                            <td><code>{{ mission.mission_code }}</code></td>
+                            <td><span class="pts-badge"><i class="fas fa-star"></i> {{ mission.reward_points }}</span></td>
+                            <td>
+                                {% if mission.is_manual %}
+                                <span class="badge badge-warning"><i class="fas fa-clock"></i> Manuelle</span>
+                                {% else %}
+                                <span class="badge badge-info"><i class="fas fa-magic"></i> Auto</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if mission.is_active %}
+                                <span class="status-badge status-validated"><i class="fas fa-circle"></i> Active</span>
+                                {% else %}
+                                <span class="status-badge status-rejected"><i class="fas fa-circle"></i> Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ mission.created_at|date:"d/m/Y" }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{% url 'dashboard:admin_mission_edit' mission.pk %}" class="btn btn-outline btn-xs">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'dashboard:admin_mission_toggle' mission.pk %}" class="inline-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline btn-xs" title="{% if mission.is_active %}Désactiver{% else %}Activer{% endif %}">
+                                            <i class="fas fa-{% if mission.is_active %}pause{% else %}play{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'dashboard:admin_mission_delete' mission.pk %}" class="inline-form"
+                                          onsubmit="return confirm('Supprimer « {{ mission.title }} » ?')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-xs">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-tasks"></i>
+                <p>Aucune mission. <a href="{% url 'dashboard:admin_mission_add' %}">Ajoutez-en une !</a></p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

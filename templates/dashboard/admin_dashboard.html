@@ -10,6 +10,9 @@
         <div class="admin-nav">
             <a href="{% url 'dashboard:admin_users' %}" class="btn btn-outline btn-sm"><i class="fas fa-users"></i> Utilisateurs</a>
             <a href="{% url 'dashboard:admin_redemptions' %}" class="btn btn-outline btn-sm"><i class="fas fa-gift"></i> Demandes</a>
+            <a href="{% url 'dashboard:admin_exchanges' %}" class="btn btn-outline btn-sm"><i class="fas fa-exchange-alt"></i> Échanges {% if pending_exchanges %}<span class="badge-count">{{ pending_exchanges }}</span>{% endif %}</a>
+            <a href="{% url 'dashboard:admin_missions' %}" class="btn btn-outline btn-sm"><i class="fas fa-tasks"></i> Missions</a>
+            <a href="{% url 'dashboard:admin_mission_requests' %}" class="btn btn-outline btn-sm"><i class="fas fa-inbox"></i> Demandes missions {% if pending_mission_requests %}<span class="badge-count">{{ pending_mission_requests }}</span>{% endif %}</a>
             <a href="{% url 'admin:index' %}" class="btn btn-outline btn-sm"><i class="fas fa-cogs"></i> Django Admin</a>
         </div>
     </div>
@@ -57,6 +60,20 @@
             <div class="admin-stat-body">
                 <div class="admin-stat-value">{{ active_users }}</div>
                 <div class="admin-stat-label">Utilisateurs actifs</div>
+            </div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-icon blue"><i class="fas fa-exchange-alt"></i></div>
+            <div class="admin-stat-body">
+                <div class="admin-stat-value">{{ pending_exchanges }}</div>
+                <div class="admin-stat-label">Échanges en attente</div>
+            </div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-icon yellow"><i class="fas fa-inbox"></i></div>
+            <div class="admin-stat-body">
+                <div class="admin-stat-value">{{ pending_mission_requests }}</div>
+                <div class="admin-stat-label">Missions à valider</div>
             </div>
         </div>
     </div>

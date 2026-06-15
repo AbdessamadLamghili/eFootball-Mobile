@@ -99,7 +99,7 @@ class APIMissionsTest(TestCase):
         self.user = make_user()
         tokens = get_tokens(self.client)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
-        Mission.objects.create(title='API Mission', description='Test', reward_points=20, mission_type=Mission.TYPE_PERMANENT)
+        Mission.objects.create(title='API Mission', description='Test', reward_points=20, mission_code=Mission.CODE_CUSTOM)
 
     def test_list_missions(self):
         response = self.client.get(reverse('api:mission_list'))

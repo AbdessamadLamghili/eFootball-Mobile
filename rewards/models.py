@@ -1,5 +1,7 @@
+import uuid
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class Reward(models.Model):
@@ -102,3 +104,62 @@ class RedemptionStatusHistory(models.Model):
 
     def __str__(self):
         return f"{self.redemption} : {self.old_status} → {self.new_status}"
+
+
+def generate_exchange_number():
+    prefix = "EX"
+    suffix = uuid.uuid4().hex[:8].upper()
+    return f"{prefix}-{suffix}"
+
+
+class ExchangeRequest(models.Model):
+    """User request to exchange points for eFootball Coins."""
+    STATUS_PENDING = 'pending'
+    STATUS_VALIDATED = 'validated'
+    STATUS_REJECTED = 'rejected'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'En attente'),
+        (STATUS_VALIDATED, 'Validé'),
+        (STATUS_REJECTED, 'Refusé'),
+    ]
+
+    EXCHANGE_RATE = 10        # 10 points = 1 coin
+    MIN_EXCHANGE_POINTS = 1000  # minimum 1000 points per exchange
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='exchange_requests'
+    )
+    request_number = models.CharField(max_length=20, unique=True, blank=True)
+    points_used = models.PositiveIntegerField(verbose_name='Points utilisés')
+    coins_requested = models.PositiveIntegerField(verbose_name='Coins demandés')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    rejection_reason = models.TextField(blank=True, verbose_name='Raison du refus')
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='processed_exchanges'
+    )
+    processed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Demande d\'échange'
+        verbose_name_plural = 'Demandes d\'échange'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.request_number} — {self.user.username} ({self.get_status_display()})"
+
+    def save(self, *args, **kwargs):
+        if not self.request_number:
+            self.request_number = generate_exchange_number()
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def calculate_coins(cls, points):
+        return points // cls.EXCHANGE_RATE

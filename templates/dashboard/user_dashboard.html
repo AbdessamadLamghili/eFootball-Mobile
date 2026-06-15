@@ -15,13 +15,20 @@
                 <div class="welcome-meta">
                     <span class="level-badge level-{{ profile.level }}">{{ profile.get_level_display }}</span>
                     <span><i class="fas fa-fire"></i> {{ profile.current_streak }} jours de streak</span>
+                    <span><i class="fas fa-users"></i> {{ invited_count }} invitation(s)</span>
                 </div>
             </div>
         </div>
-        <div class="welcome-points">
+        <div class="welcome-right">
             <div class="points-display">
                 <span class="points-value">{{ profile.points_balance|intcomma }}</span>
                 <span class="points-label">points</span>
+            </div>
+            <div class="invitation-code-mini">
+                <span class="code-label">Mon code</span>
+                <span class="code-value" title="Cliquez pour copier" onclick="copyCode('{{ profile.invitation_code }}')">
+                    {{ profile.invitation_code }} <i class="fas fa-copy"></i>
+                </span>
             </div>
         </div>
     </div>
@@ -34,13 +41,13 @@
             <i class="fas fa-sun"></i>
             <div>
                 <h3>Récompense quotidienne disponible !</h3>
-                <p>Réclamez vos +10 points du jour et continuez votre streak.</p>
+                <p>Réclamez vos +50 points du jour et continuez votre streak.</p>
             </div>
         </div>
         <form method="post" action="{% url 'accounts:claim_daily_reward' %}">
             {% csrf_token %}
             <button type="submit" class="btn btn-accent">
-                <i class="fas fa-hand-sparkles"></i> Réclamer +10 pts
+                <i class="fas fa-hand-sparkles"></i> Réclamer +50 pts
             </button>
         </form>
     </div>
@@ -55,6 +62,22 @@
         <i class="fas fa-check-circle"></i>
         Récompense quotidienne réclamée aujourd'hui. Revenez demain !
         <span class="streak-info"><i class="fas fa-fire"></i> Streak : {{ profile.current_streak }} jours</span>
+    </div>
+    {% endif %}
+
+    <!-- Exchange CTA -->
+    {% if can_exchange %}
+    <div class="exchange-banner">
+        <div class="exchange-banner-left">
+            <i class="fas fa-coins"></i>
+            <div>
+                <h3>Échangez vos points contre des Coins !</h3>
+                <p>{{ profile.points_balance|intcomma }} points disponibles — 1000 pts = 100 Coins eFootball</p>
+            </div>
+        </div>
+        <a href="{% url 'rewards:exchange' %}" class="btn btn-primary">
+            <i class="fas fa-exchange-alt"></i> Échanger maintenant
+        </a>
     </div>
     {% endif %}
 
@@ -75,17 +98,17 @@
             </div>
         </div>
         <div class="stat-widget">
-            <div class="stat-widget-icon"><i class="fas fa-gift"></i></div>
+            <div class="stat-widget-icon"><i class="fas fa-users"></i></div>
             <div class="stat-widget-info">
-                <div class="stat-widget-value">{{ pending_redemptions_count }}</div>
-                <div class="stat-widget-label">Demandes en attente</div>
+                <div class="stat-widget-value">{{ invited_count }}</div>
+                <div class="stat-widget-label">Invitations validées</div>
             </div>
         </div>
         <div class="stat-widget">
-            <div class="stat-widget-icon"><i class="fas fa-trophy"></i></div>
+            <div class="stat-widget-icon"><i class="fas fa-exchange-alt"></i></div>
             <div class="stat-widget-info">
-                <div class="stat-widget-value">{{ profile.total_points_earned|intcomma }}</div>
-                <div class="stat-widget-label">Points totaux gagnés</div>
+                <div class="stat-widget-value">{{ pending_exchanges_count }}</div>
+                <div class="stat-widget-label">Échanges en attente</div>
             </div>
         </div>
     </div>
@@ -128,18 +151,17 @@
                     <div class="mission-info">
                         <div class="mission-title">{{ item.mission.title }}</div>
                         <div class="mission-meta">
-                            <span class="badge badge-{{ item.mission.mission_type }}">{{ item.mission.get_mission_type_display }}</span>
                             <span class="mission-pts"><i class="fas fa-star"></i> +{{ item.mission.reward_points }}</span>
+                            {% if item.mission.is_manual %}<span class="badge badge-sm badge-warning">Manuelle</span>{% endif %}
                         </div>
                     </div>
                     <div class="mission-action">
                         {% if item.completed %}
                         <span class="completed-check"><i class="fas fa-check-circle"></i></span>
+                        {% elif item.pending_request %}
+                        <span class="pending-check"><i class="fas fa-hourglass-half"></i></span>
                         {% else %}
-                        <form method="post" action="{% url 'missions:complete' item.mission.pk %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary btn-sm">Compléter</button>
-                        </form>
+                        <a href="{% url 'missions:list' %}" class="btn btn-primary btn-sm">Voir</a>
                         {% endif %}
                     </div>
                 </div>
@@ -149,10 +171,45 @@
             </div>
         </div>
 
-        <!-- Recent activity -->
+        <!-- Recent exchanges & activity -->
         <div class="card">
             <div class="card-header">
-                <h3><i class="fas fa-history"></i> Activité récente</h3>
+                <h3><i class="fas fa-exchange-alt"></i> Échanges récents</h3>
+                <a href="{% url 'rewards:exchange' %}" class="btn btn-outline btn-sm">Voir tout</a>
+            </div>
+            <div class="card-body">
+                {% for ex in recent_exchanges %}
+                <div class="activity-item">
+                    <div class="activity-icon {% if ex.status == 'validated' %}credit{% elif ex.status == 'rejected' %}debit{% else %}neutral{% endif %}">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="activity-info">
+                        <div class="activity-reason">{{ ex.request_number }} — {{ ex.coins_requested }} Coins</div>
+                        <div class="activity-date">{{ ex.created_at|date:"d/m H:i" }}</div>
+                    </div>
+                    <div class="activity-points">
+                        <span class="status-badge status-{{ ex.status }}">{{ ex.get_status_display }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-mini">
+                    <i class="fas fa-exchange-alt"></i>
+                    <p>Aucun échange effectué.</p>
+                    {% if can_exchange %}
+                    <a href="{% url 'rewards:exchange' %}" class="btn btn-primary btn-sm">Échanger mes points</a>
+                    {% else %}
+                    <p class="text-muted">Il faut 1000 points minimum pour échanger.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent transactions -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-history"></i> Historique des points</h3>
+                <a href="{% url 'accounts:profile' %}" class="btn btn-outline btn-sm">Voir tout</a>
             </div>
             <div class="card-body">
                 {% for tx in recent_transactions %}
@@ -173,7 +230,37 @@
                 {% endfor %}
             </div>
         </div>
+
+        <!-- Invitation code -->
+        <div class="card invitation-card">
+            <div class="card-header">
+                <h3><i class="fas fa-user-plus"></i> Mon code d'invitation</h3>
+            </div>
+            <div class="card-body invitation-body">
+                <div class="invitation-code-display">
+                    <span class="inv-code" id="invCode">{{ profile.invitation_code }}</span>
+                    <button class="btn btn-outline btn-sm" onclick="copyCode('{{ profile.invitation_code }}')">
+                        <i class="fas fa-copy"></i> Copier
+                    </button>
+                </div>
+                <p class="inv-hint">Partagez ce code avec vos amis. Gagnez +50 pts par ami qui crée un compte et vérifie son email.</p>
+                <div class="inv-stats">
+                    <span><i class="fas fa-users"></i> {{ invited_count }} invitation(s) validée(s)</span>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+        const el = document.getElementById('invCode');
+        if (el) { el.classList.add('copied'); setTimeout(() => el.classList.remove('copied'), 1500); }
+    });
+}
+</script>
 {% endblock %}

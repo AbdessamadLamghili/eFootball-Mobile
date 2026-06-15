@@ -14,6 +14,11 @@ class RegisterForm(forms.ModelForm):
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirmer le mot de passe'}),
         label='Confirmer le mot de passe',
     )
+    invitation_code = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: EFOOT-4582 (optionnel)'}),
+        label='Code d\'invitation',
+        required=False,
+    )
 
     class Meta:
         model = User
@@ -21,7 +26,7 @@ class RegisterForm(forms.ModelForm):
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nom d\'utilisateur'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Adresse email'}),
-            'efootball_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Votre ID eFootball'}),
+            'efootball_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Votre ID eFootball (optionnel)'}),
         }
         labels = {
             'username': 'Nom d\'utilisateur',
@@ -43,9 +48,19 @@ class RegisterForm(forms.ModelForm):
 
     def clean_efootball_id(self):
         efootball_id = self.cleaned_data.get('efootball_id')
+        if not efootball_id:
+            return efootball_id
         if User.objects.filter(efootball_id__iexact=efootball_id).exists():
             raise ValidationError('Cet eFootball ID est déjà utilisé.')
         return efootball_id
+
+    def clean_invitation_code(self):
+        code = self.cleaned_data.get('invitation_code', '').strip().upper()
+        if not code:
+            return ''
+        if not UserProfile.objects.filter(invitation_code__iexact=code).exists():
+            raise ValidationError('Code d\'invitation invalide.')
+        return code
 
     def clean(self):
         cleaned_data = super().clean()
@@ -130,6 +145,8 @@ class ProfileUpdateForm(forms.ModelForm):
 
     def clean_efootball_id(self):
         efootball_id = self.cleaned_data.get('efootball_id')
+        if not efootball_id:
+            return efootball_id
         qs = User.objects.filter(efootball_id__iexact=efootball_id).exclude(pk=self.instance.pk)
         if qs.exists():
             raise ValidationError('Cet eFootball ID est déjà utilisé.')

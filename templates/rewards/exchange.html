@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Mes échanges — eFootball Rewards{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h1><i class="fas fa-exchange-alt"></i> Mes échanges</h1>
+            <p class="page-subtitle">Échangez vos points contre des Coins eFootball</p>
+        </div>
+    </div>
+
+    <!-- Exchange info + action -->
+    <div class="exchange-hero">
+        <div class="exchange-hero-left">
+            <div class="exchange-rate-display">
+                <div class="rate-block">
+                    <span class="rate-num">1000</span>
+                    <span class="rate-label">Points</span>
+                </div>
+                <div class="rate-arrow"><i class="fas fa-arrows-alt-h"></i></div>
+                <div class="rate-block">
+                    <span class="rate-num">100</span>
+                    <span class="rate-label">Coins eFootball</span>
+                </div>
+            </div>
+            <p class="exchange-sub">Vos échanges sont traités sous 48 heures. Les Coins sont ajoutés à votre compte eFootball après vérification de votre ID.</p>
+        </div>
+        <div class="exchange-hero-right">
+            <div class="balance-widget">
+                <div class="balance-pts">
+                    <i class="fas fa-star"></i>
+                    <span class="balance-val">{{ profile.points_balance|intcomma }}</span>
+                    <span class="balance-unit">points</span>
+                </div>
+                {% if can_exchange %}
+                <div class="balance-preview">
+                    Vous pouvez obtenir <strong>{{ coins_preview }} Coins</strong>
+                </div>
+                <form method="post" action="{% url 'rewards:create_exchange' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary btn-lg exchange-btn">
+                        <i class="fas fa-exchange-alt"></i> Échanger 1000 pts → 100 Coins
+                    </button>
+                </form>
+                {% else %}
+                <div class="balance-insufficient">
+                    <i class="fas fa-lock"></i>
+                    Il vous faut au moins <strong>{{ min_points }} points</strong> pour effectuer un échange.
+                </div>
+                <button class="btn btn-disabled btn-lg" disabled>
+                    <i class="fas fa-exchange-alt"></i> Échanger (min. {{ min_points }} pts)
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Process description -->
+    <div class="exchange-process-card card">
+        <div class="card-header">
+            <h3><i class="fas fa-info-circle"></i> Comment ça fonctionne ?</h3>
+        </div>
+        <div class="card-body">
+            <div class="process-steps">
+                <div class="process-step">
+                    <div class="step-icon"><i class="fas fa-mouse-pointer"></i></div>
+                    <div class="step-text">
+                        <strong>1. Échangez</strong>
+                        <p>Cliquez sur "Échanger" — 1000 points sont déduits de votre solde.</p>
+                    </div>
+                </div>
+                <div class="process-step">
+                    <div class="step-icon"><i class="fas fa-hourglass-half"></i></div>
+                    <div class="step-text">
+                        <strong>2. Patientez</strong>
+                        <p>Votre demande est traitée sous 48 heures ouvrées.</p>
+                    </div>
+                </div>
+                <div class="process-step">
+                    <div class="step-icon"><i class="fas fa-gamepad"></i></div>
+                    <div class="step-text">
+                        <strong>3. Recevez</strong>
+                        <p>Les Coins sont ajoutés à votre compte eFootball via votre ID.</p>
+                    </div>
+                </div>
+            </div>
+            {% if not user.efootball_id %}
+            <div class="alert alert-warning" style="margin-top:1rem;">
+                <i class="fas fa-exclamation-triangle"></i>
+                Votre <strong>eFootball ID</strong> n'est pas renseigné.
+                <a href="{% url 'accounts:profile_edit' %}">Complétez votre profil</a> pour recevoir vos Coins.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Exchange history -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-history"></i> Historique des échanges</h3>
+        </div>
+        <div class="card-body p-0">
+            {% if page.object_list %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Numéro</th>
+                            <th>Date</th>
+                            <th>Points utilisés</th>
+                            <th>Coins demandés</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ex in page.object_list %}
+                        <tr>
+                            <td><code>{{ ex.request_number }}</code></td>
+                            <td>{{ ex.created_at|date:"d/m/Y H:i" }}</td>
+                            <td class="text-error">−{{ ex.points_used|intcomma }} pts</td>
+                            <td><strong>{{ ex.coins_requested }} Coins</strong></td>
+                            <td>
+                                <span class="status-badge status-{{ ex.status }}">
+                                    {% if ex.status == 'pending' %}<i class="fas fa-hourglass-half"></i>
+                                    {% elif ex.status == 'validated' %}<i class="fas fa-check-circle"></i>
+                                    {% else %}<i class="fas fa-times-circle"></i>{% endif %}
+                                    {{ ex.get_status_display }}
+                                </span>
+                                {% if ex.status == 'rejected' and ex.rejection_reason %}
+                                <div class="rejection-reason"><i class="fas fa-comment"></i> {{ ex.rejection_reason }}</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination -->
+            {% if page.has_other_pages %}
+            <div class="pagination-bar">
+                {% if page.has_previous %}
+                <a href="?page={{ page.previous_page_number }}" class="btn btn-outline btn-sm">&laquo; Précédent</a>
+                {% endif %}
+                <span>Page {{ page.number }} / {{ page.paginator.num_pages }}</span>
+                {% if page.has_next %}
+                <a href="?page={{ page.next_page_number }}" class="btn btn-outline btn-sm">Suivant &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-exchange-alt"></i>
+                <p>Aucun échange effectué.</p>
+                {% if can_exchange %}
+                <p>Vous avez des points disponibles — faites votre premier échange !</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

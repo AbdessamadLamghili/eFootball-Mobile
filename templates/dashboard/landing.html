@@ -5,30 +5,36 @@
 
 {% block content %}
 
-<!-- ── HERO ──────────────────────────────────────────────────── -->
+<!-- ── HERO eFootball Brand ──────────────────────────────── -->
 <section class="hero">
   <div class="hero-bg"></div>
 
-  <!-- Balles flottantes décoratives -->
-  <div class="floating-balls" aria-hidden="true">
-    <span class="ball b1">⚽</span>
-    <span class="ball b2">🏆</span>
-    <span class="ball b3">⚽</span>
-    <span class="ball b4">⭐</span>
-    <span class="ball b5">⚽</span>
+  <!-- Lightning bolt shapes (eFootball brand) -->
+  <div class="ef-lightning" aria-hidden="true">
+    <div class="ef-bolt-shape b1"></div>
+    <div class="ef-bolt-shape b2"></div>
+    <div class="ef-bolt-shape b3"></div>
+    <div class="ef-bolt-shape b4"></div>
+    <div class="ef-bolt-shape b5"></div>
   </div>
 
   <div class="hero-content">
-    <div class="hero-badge">
-      <i class="fas fa-futbol"></i> Plateforme officielle de récompenses
+    <!-- eFootball Logo + Wordmark -->
+    <div class="ef-brand-logo">
+      <div class="ef-e-circle">e</div>
+      <div class="ef-wordmark">
+        <span class="ef-word-main">FOOTBALL</span>
+        <span class="ef-word-sub">Rewards Platform</span>
+      </div>
     </div>
+
     <h1 class="hero-title">
       Gagnez des points.<br>
       <span class="accent">Réclamez vos récompenses.</span>
     </h1>
     <p class="hero-subtitle">
       Connectez-vous chaque jour, accomplissez des missions et échangez vos points
-      contre des récompenses exclusives eFootball.
+      contre des Coins eFootball et récompenses exclusives.
     </p>
     <div class="hero-cta">
       <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg">
@@ -52,80 +58,223 @@
       <div class="stat-label">Points distribués</div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon"><i class="fas fa-gift"></i></div>
+      <div class="stat-icon"><i class="fas fa-coins"></i></div>
       <div class="stat-value">1K+</div>
-      <div class="stat-label">Récompenses livrées</div>
+      <div class="stat-label">Échanges validés</div>
     </div>
   </div>
 </section>
 
-<!-- ── CARTES JOUEURS ─────────────────────────────────────────── -->
+<!-- ── CARTES JOUEURS eFootball ───────────────────────────────── -->
 <section class="players-section">
   <div class="container">
-    <h2 class="section-title">🌟 Joueurs en vedette</h2>
-    <p class="section-subtitle">Gagnez assez de points pour débloquer des packs contenant ces légendes</p>
-    <div class="players-grid">
+    <h2 class="section-title">🌟 Joueurs en <span>vedette</span></h2>
+    <p class="section-subtitle">Gagnez des points pour débloquer les meilleures cartes eFootball</p>
+    <div class="ef-cards-grid">
 
-      <div class="player-card card-gold">
-        <div class="card-shine"></div>
-        <div class="card-rating">99</div>
-        <div class="card-position">ATT</div>
-        <div class="card-avatar"><i class="fas fa-user-circle"></i></div>
-        <div class="card-name">Lionel M.</div>
-        <div class="card-club">⚽ Inter Miami</div>
-        <div class="card-stats">
-          <span><b>96</b><small>TIR</small></span>
-          <span><b>97</b><small>DRI</small></span>
-          <span><b>94</b><small>PAS</small></span>
+      <!-- MESSI — Iconic Moment 99 -->
+      <div class="ef-card ef-im" data-tilt>
+        <div class="ef-card-bg"></div>
+        <div class="ef-hologram"></div>
+        <div class="ef-shine"></div>
+
+        <div class="ef-top-bar">
+          <div class="ef-ov-block">
+            <span class="ef-ov">99</span>
+            <span class="ef-pos">SS</span>
+          </div>
+          <div class="ef-type-tag ef-tag-im">iM</div>
+          <div class="ef-meta-flags">
+            <span class="ef-flag-nat" title="Argentine">🇦🇷</span>
+            <span class="ef-club-img" title="Inter Miami">🌸</span>
+          </div>
         </div>
-        <div class="card-badge">LÉGENDE</div>
+
+        <div class="ef-art-zone ef-art-messi">
+          <div class="ef-jersey-bg">10</div>
+          <div class="ef-player-shape">
+            <svg viewBox="0 0 120 160" fill="none" xmlns="http://www.w3.org/2000/svg" class="ef-svg-player">
+              <ellipse cx="60" cy="22" rx="16" ry="18" fill="rgba(255,255,255,0.92)"/>
+              <path d="M38 48 Q60 38 82 48 L88 100 H72 L60 78 L48 100 H32 Z" fill="rgba(255,255,255,0.88)"/>
+              <path d="M32 100 L24 148 H40 L50 108" fill="rgba(255,255,255,0.82)"/>
+              <path d="M88 100 L96 148 H80 L70 108" fill="rgba(255,255,255,0.82)"/>
+              <path d="M38 55 L18 88 L30 96 L46 66" fill="rgba(255,255,255,0.8)"/>
+              <path d="M82 55 L102 88 L90 96 L74 66" fill="rgba(255,255,255,0.8)"/>
+              <ellipse cx="24" cy="150" rx="10" ry="5" fill="rgba(255,255,255,0.5)"/>
+              <ellipse cx="92" cy="150" rx="10" ry="5" fill="rgba(255,255,255,0.5)"/>
+            </svg>
+          </div>
+          <div class="ef-card-star-rating">
+            <span>★★★★★</span>
+          </div>
+        </div>
+
+        <div class="ef-namebar">
+          <span class="ef-fullname">L. MESSI</span>
+        </div>
+
+        <div class="ef-stats-row">
+          <div class="ef-stat-block"><b>99</b><small>DRI</small></div>
+          <div class="ef-stat-block"><b>97</b><small>PAS</small></div>
+          <div class="ef-stat-block"><b>94</b><small>TIR</small></div>
+          <div class="ef-stat-block"><b>78</b><small>VIT</small></div>
+          <div class="ef-stat-block"><b>38</b><small>DEF</small></div>
+          <div class="ef-stat-block"><b>67</b><small>PHY</small></div>
+        </div>
       </div>
 
-      <div class="player-card card-diamond">
-        <div class="card-shine"></div>
-        <div class="card-rating">98</div>
-        <div class="card-position">ATT</div>
-        <div class="card-avatar"><i class="fas fa-user-circle"></i></div>
-        <div class="card-name">Cristiano R.</div>
-        <div class="card-club">⚽ Al Nassr</div>
-        <div class="card-stats">
-          <span><b>97</b><small>TIR</small></span>
-          <span><b>93</b><small>DRI</small></span>
-          <span><b>92</b><small>PAS</small></span>
+      <!-- RONALDO — Iconic Moment 98 -->
+      <div class="ef-card ef-im ef-im-blue" data-tilt>
+        <div class="ef-card-bg"></div>
+        <div class="ef-hologram"></div>
+        <div class="ef-shine"></div>
+
+        <div class="ef-top-bar">
+          <div class="ef-ov-block">
+            <span class="ef-ov">98</span>
+            <span class="ef-pos">CF</span>
+          </div>
+          <div class="ef-type-tag ef-tag-im">iM</div>
+          <div class="ef-meta-flags">
+            <span class="ef-flag-nat" title="Portugal">🇵🇹</span>
+            <span class="ef-club-img" title="Al Nassr">⚡</span>
+          </div>
         </div>
-        <div class="card-badge">ICÔNE</div>
+
+        <div class="ef-art-zone ef-art-cr7">
+          <div class="ef-jersey-bg">7</div>
+          <div class="ef-player-shape">
+            <svg viewBox="0 0 120 160" fill="none" xmlns="http://www.w3.org/2000/svg" class="ef-svg-player">
+              <ellipse cx="60" cy="20" rx="15" ry="17" fill="rgba(255,255,255,0.92)"/>
+              <path d="M40 46 Q60 36 80 46 L84 92 H70 L60 72 L50 92 H36 Z" fill="rgba(255,255,255,0.88)"/>
+              <path d="M36 92 L26 142 H42 L52 104" fill="rgba(255,255,255,0.82)"/>
+              <path d="M84 92 L94 142 H78 L68 104" fill="rgba(255,255,255,0.82)"/>
+              <path d="M42 52 L22 84 L32 92 L48 62" fill="rgba(255,255,255,0.8)"/>
+              <path d="M80 46 L106 76 L94 86 L74 58" fill="rgba(255,255,255,0.8)"/>
+              <ellipse cx="28" cy="144" rx="11" ry="5" fill="rgba(255,255,255,0.45)"/>
+              <ellipse cx="90" cy="144" rx="11" ry="5" fill="rgba(255,255,255,0.45)"/>
+            </svg>
+          </div>
+          <div class="ef-card-star-rating"><span>★★★★★</span></div>
+        </div>
+
+        <div class="ef-namebar">
+          <span class="ef-fullname">C. RONALDO</span>
+        </div>
+
+        <div class="ef-stats-row">
+          <div class="ef-stat-block"><b>98</b><small>TIR</small></div>
+          <div class="ef-stat-block"><b>97</b><small>PHY</small></div>
+          <div class="ef-stat-block"><b>89</b><small>VIT</small></div>
+          <div class="ef-stat-block"><b>88</b><small>DRI</small></div>
+          <div class="ef-stat-block"><b>84</b><small>PAS</small></div>
+          <div class="ef-stat-block"><b>42</b><small>DEF</small></div>
+        </div>
       </div>
 
-      <div class="player-card card-platinum">
-        <div class="card-shine"></div>
-        <div class="card-rating">96</div>
-        <div class="card-position">MIL</div>
-        <div class="card-avatar"><i class="fas fa-user-circle"></i></div>
-        <div class="card-name">Kylian M.</div>
-        <div class="card-club">⚽ Real Madrid</div>
-        <div class="card-stats">
-          <span><b>94</b><small>TIR</small></span>
-          <span><b>97</b><small>DRI</small></span>
-          <span><b>90</b><small>VIT</small></span>
+      <!-- MBAPPÉ — Featured Player 97 -->
+      <div class="ef-card ef-fp" data-tilt>
+        <div class="ef-card-bg"></div>
+        <div class="ef-shine"></div>
+
+        <div class="ef-top-bar">
+          <div class="ef-ov-block">
+            <span class="ef-ov">97</span>
+            <span class="ef-pos">LWF</span>
+          </div>
+          <div class="ef-type-tag ef-tag-fp">FP</div>
+          <div class="ef-meta-flags">
+            <span class="ef-flag-nat" title="France">🇫🇷</span>
+            <span class="ef-club-img" title="Real Madrid">👑</span>
+          </div>
         </div>
-        <div class="card-badge">ÉPIQUE</div>
+
+        <div class="ef-art-zone ef-art-mbappe">
+          <div class="ef-jersey-bg">9</div>
+          <div class="ef-player-shape">
+            <svg viewBox="0 0 120 160" fill="none" xmlns="http://www.w3.org/2000/svg" class="ef-svg-player">
+              <ellipse cx="60" cy="19" rx="14" ry="16" fill="rgba(255,255,255,0.92)"/>
+              <path d="M42 44 Q60 34 78 44 L80 90 H67 L60 70 L53 90 H40 Z" fill="rgba(255,255,255,0.88)"/>
+              <path d="M40 90 L30 144 H46 L54 102" fill="rgba(255,255,255,0.82)"/>
+              <path d="M80 90 L90 140 L76 144 L68 102" fill="rgba(255,255,255,0.82)"/>
+              <path d="M44 50 L20 82 L32 90 L50 60" fill="rgba(255,255,255,0.8)"/>
+              <path d="M78 44 L104 74 L92 84 L72 56" fill="rgba(255,255,255,0.8)"/>
+              <ellipse cx="34" cy="146" rx="10" ry="4" fill="rgba(255,255,255,0.4)"/>
+              <ellipse cx="84" cy="144" rx="10" ry="4" fill="rgba(255,255,255,0.4)"/>
+            </svg>
+          </div>
+          <div class="ef-speed-tag">⚡ VIT 99</div>
+        </div>
+
+        <div class="ef-namebar">
+          <span class="ef-fullname">K. MBAPPÉ</span>
+        </div>
+
+        <div class="ef-stats-row">
+          <div class="ef-stat-block"><b>99</b><small>VIT</small></div>
+          <div class="ef-stat-block"><b>96</b><small>DRI</small></div>
+          <div class="ef-stat-block"><b>93</b><small>TIR</small></div>
+          <div class="ef-stat-block"><b>84</b><small>PAS</small></div>
+          <div class="ef-stat-block"><b>82</b><small>PHY</small></div>
+          <div class="ef-stat-block"><b>39</b><small>DEF</small></div>
+        </div>
       </div>
 
-      <div class="player-card card-silver">
-        <div class="card-shine"></div>
-        <div class="card-rating">94</div>
-        <div class="card-position">MIL</div>
-        <div class="card-avatar"><i class="fas fa-user-circle"></i></div>
-        <div class="card-name">E. Hazard</div>
-        <div class="card-club">⚽ Retraité</div>
-        <div class="card-stats">
-          <span><b>91</b><small>TIR</small></span>
-          <span><b>95</b><small>DRI</small></span>
-          <span><b>89</b><small>PAS</small></span>
+      <!-- VINICIUS JR — Epic 95 -->
+      <div class="ef-card ef-ep" data-tilt>
+        <div class="ef-card-bg"></div>
+        <div class="ef-shine"></div>
+
+        <div class="ef-top-bar">
+          <div class="ef-ov-block">
+            <span class="ef-ov">95</span>
+            <span class="ef-pos">LWF</span>
+          </div>
+          <div class="ef-type-tag ef-tag-ep">EP</div>
+          <div class="ef-meta-flags">
+            <span class="ef-flag-nat" title="Brésil">🇧🇷</span>
+            <span class="ef-club-img" title="Real Madrid">👑</span>
+          </div>
         </div>
-        <div class="card-badge">RARE</div>
+
+        <div class="ef-art-zone ef-art-vini">
+          <div class="ef-jersey-bg">7</div>
+          <div class="ef-player-shape">
+            <svg viewBox="0 0 120 160" fill="none" xmlns="http://www.w3.org/2000/svg" class="ef-svg-player">
+              <ellipse cx="58" cy="20" rx="14" ry="16" fill="rgba(255,255,255,0.92)"/>
+              <path d="M40 44 Q58 34 76 44 L78 90 H65 L58 70 L51 90 H38 Z" fill="rgba(255,255,255,0.88)"/>
+              <path d="M38 90 L22 142 H40 L50 102" fill="rgba(255,255,255,0.82)"/>
+              <path d="M78 90 L96 138 L78 142 L66 102" fill="rgba(255,255,255,0.82)"/>
+              <path d="M42 50 L14 80 L26 90 L46 62" fill="rgba(255,255,255,0.8)"/>
+              <path d="M76 44 L106 70 L94 82 L72 56" fill="rgba(255,255,255,0.8)"/>
+              <ellipse cx="28" cy="144" rx="10" ry="4" fill="rgba(255,255,255,0.4)"/>
+              <ellipse cx="86" cy="142" rx="10" ry="4" fill="rgba(255,255,255,0.4)"/>
+            </svg>
+          </div>
+          <div class="ef-speed-tag">✨ DRI 95</div>
+        </div>
+
+        <div class="ef-namebar">
+          <span class="ef-fullname">VINÍCIUS JR</span>
+        </div>
+
+        <div class="ef-stats-row">
+          <div class="ef-stat-block"><b>97</b><small>VIT</small></div>
+          <div class="ef-stat-block"><b>95</b><small>DRI</small></div>
+          <div class="ef-stat-block"><b>88</b><small>TIR</small></div>
+          <div class="ef-stat-block"><b>79</b><small>PAS</small></div>
+          <div class="ef-stat-block"><b>72</b><small>PHY</small></div>
+          <div class="ef-stat-block"><b>25</b><small>DEF</small></div>
+        </div>
       </div>
 
+    </div>
+
+    <!-- Légende des types de cartes -->
+    <div class="ef-legend">
+      <span class="ef-legend-item ef-tag-im">iM — Iconic Moment</span>
+      <span class="ef-legend-item ef-tag-fp">FP — Featured Player</span>
+      <span class="ef-legend-item ef-tag-ep">EP — Epic</span>
     </div>
   </div>
 </section>
@@ -133,7 +282,7 @@
 <!-- ── MONNAIES & RÉCOMPENSES ────────────────────────────────── -->
 <section class="coins-section">
   <div class="container">
-    <h2 class="section-title">💰 Ce que vous pouvez gagner</h2>
+    <h2 class="section-title">💰 Ce que vous pouvez <span>gagner</span></h2>
     <p class="section-subtitle">Échangez vos points contre des ressources in-game ou des cartes cadeaux</p>
     <div class="coins-grid">
 
@@ -180,7 +329,7 @@
 <!-- ── COMMENT ÇA MARCHE ─────────────────────────────────────── -->
 <section class="features">
   <div class="container">
-    <h2 class="section-title">Comment ça marche ?</h2>
+    <h2 class="section-title">Comment ça <span>marche</span> ?</h2>
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon"><i class="fas fa-calendar-check"></i></div>
@@ -209,7 +358,7 @@
 <!-- ── NIVEAUX ───────────────────────────────────────────────── -->
 <section class="levels-preview">
   <div class="container">
-    <h2 class="section-title">Système de niveaux</h2>
+    <h2 class="section-title">Système de <span>niveaux</span></h2>
     <div class="levels-grid">
       <div class="level-card level-bronze"><i class="fas fa-medal"></i><span>Bronze</span><small>0 pts</small></div>
       <div class="level-card level-silver"><i class="fas fa-medal"></i><span>Argent</span><small>500 pts</small></div>
@@ -225,7 +374,7 @@
   <div class="container">
     <div class="cta-card">
       <h2>Prêt à jouer ?</h2>
-      <p>Rejoignez des milliers de joueurs et commencez à gagner dès aujourd'hui.</p>
+      <p>Rejoignez des milliers de joueurs eFootball et commencez à gagner dès aujourd'hui.</p>
       <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg">
         <i class="fas fa-user-plus"></i> Créer un compte gratuit
       </a>

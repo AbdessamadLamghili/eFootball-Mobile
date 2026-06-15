@@ -5,5 +5,5 @@ app_name = 'missions'
 
 urlpatterns = [
     path('', views.mission_list, name='list'),
-    path('<int:pk>/complete/', views.complete_mission, name='complete'),
+    path('<int:pk>/submit/', views.submit_mission, name='submit'),
 ]

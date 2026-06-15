@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Échanges — Admin{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h1><i class="fas fa-exchange-alt"></i> Demandes d'échange</h1>
+            <p class="page-subtitle">Validez ou refusez les échanges points → Coins</p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'dashboard:admin_dashboard' %}" class="btn btn-outline btn-sm">
+                <i class="fas fa-arrow-left"></i> Tableau de bord
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+        <a href="{% url 'dashboard:admin_exchanges' %}" class="filter-btn {% if not status_filter %}active{% endif %}">Tout</a>
+        {% for value, label in status_choices %}
+        <a href="?status={{ value }}" class="filter-btn {% if status_filter == value %}active{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if page.object_list %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Numéro</th>
+                            <th>Utilisateur</th>
+                            <th>Email</th>
+                            <th>ID eFootball</th>
+                            <th>Points utilisés</th>
+                            <th>Coins demandés</th>
+                            <th>Date</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ex in page.object_list %}
+                        <tr>
+                            <td><code>{{ ex.request_number }}</code></td>
+                            <td><strong>{{ ex.user.username }}</strong></td>
+                            <td>{{ ex.user.email }}</td>
+                            <td>{{ ex.user.efootball_id|default:"—" }}</td>
+                            <td class="text-error">{{ ex.points_used|intcomma }} pts</td>
+                            <td><strong>{{ ex.coins_requested }} Coins</strong></td>
+                            <td>{{ ex.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="status-badge status-{{ ex.status }}">{{ ex.get_status_display }}</span>
+                                {% if ex.rejection_reason %}
+                                <div class="rejection-reason"><i class="fas fa-comment"></i> {{ ex.rejection_reason }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ex.status == 'pending' %}
+                                <div class="action-buttons">
+                                    <form method="post" action="{% url 'dashboard:admin_exchange_action' ex.pk %}" class="inline-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="validate">
+                                        <button type="submit" class="btn btn-success btn-xs" onclick="return confirm('Valider cet échange ?')">
+                                            <i class="fas fa-check"></i> Valider
+                                        </button>
+                                    </form>
+                                    <button class="btn btn-danger btn-xs" onclick="showRejectForm('{{ ex.pk }}')">
+                                        <i class="fas fa-times"></i> Refuser
+                                    </button>
+                                    <!-- Reject form (hidden until click) -->
+                                    <div class="reject-form" id="rejectForm{{ ex.pk }}" style="display:none;">
+                                        <form method="post" action="{% url 'dashboard:admin_exchange_action' ex.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="reject">
+                                            <select name="rejection_reason" class="form-select form-select-sm" required>
+                                                <option value="">Choisir une raison...</option>
+                                                <option value="ID eFootball incorrect">ID eFootball incorrect</option>
+                                                <option value="Compte eFootball introuvable">Compte eFootball introuvable</option>
+                                                <option value="Informations insuffisantes">Informations insuffisantes</option>
+                                                <option value="Demande en doublon">Demande en doublon</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-danger btn-xs mt-1">Confirmer le refus</button>
+                                            <button type="button" class="btn btn-outline btn-xs mt-1" onclick="hideRejectForm('{{ ex.pk }}')">Annuler</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% if ex.processed_by %}
+                                <div class="text-muted" style="font-size:0.75rem;">par {{ ex.processed_by.username }}</div>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination -->
+            {% if page.has_other_pages %}
+            <div class="pagination-bar">
+                {% if page.has_previous %}<a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ page.previous_page_number }}" class="btn btn-outline btn-sm">&laquo;</a>{% endif %}
+                <span>Page {{ page.number }}/{{ page.paginator.num_pages }}</span>
+                {% if page.has_next %}<a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ page.next_page_number }}" class="btn btn-outline btn-sm">&raquo;</a>{% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-exchange-alt"></i>
+                <p>Aucune demande d'échange{% if status_filter %} avec ce statut{% endif %}.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showRejectForm(id) {
+    document.getElementById('rejectForm' + id).style.display = 'block';
+}
+function hideRejectForm(id) {
+    document.getElementById('rejectForm' + id).style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -1,8 +1,19 @@
 import uuid
+import random
+import string
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
+
+
+def generate_invitation_code():
+    number = random.randint(1000, 9999)
+    code = f"EFOOT-{number}"
+    while UserProfile.objects.filter(invitation_code=code).exists():
+        number = random.randint(1000, 9999)
+        code = f"EFOOT-{number}"
+    return code
 
 
 class UserManager(BaseUserManager):
@@ -28,7 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(unique=True)
-    efootball_id = models.CharField(max_length=50, unique=True, verbose_name='eFootball ID')
+    efootball_id = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name='eFootball ID')
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_email_verified = models.BooleanField(default=False)
@@ -39,7 +50,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'efootball_id']
+    REQUIRED_FIELDS = ['username']
 
     class Meta:
         verbose_name = 'Utilisateur'
@@ -62,6 +73,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def can_redeem(self):
         return self.is_email_verified and not self.is_suspended
+
+    @property
+    def is_profile_complete(self):
+        return bool(
+            self.efootball_id
+            and hasattr(self, 'profile')
+            and self.profile.avatar
+        )
 
 
 class UserProfile(models.Model):
@@ -87,6 +106,12 @@ class UserProfile(models.Model):
     current_streak = models.PositiveIntegerField(default=0)
     longest_streak = models.PositiveIntegerField(default=0)
     last_daily_reward = models.DateField(null=True, blank=True)
+    invitation_code = models.CharField(max_length=20, unique=True, blank=True)
+    invited_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='invited_users'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -97,7 +122,12 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"Profil de {self.user.username}"
 
-    def add_points(self, points, reason=''):
+    def save(self, *args, **kwargs):
+        if not self.invitation_code:
+            self.invitation_code = generate_invitation_code()
+        super().save(*args, **kwargs)
+
+    def add_points(self, points, reason='', transaction_category=None):
         self.points_balance += points
         self.total_points_earned += points
         self.update_level()
@@ -106,11 +136,12 @@ class UserProfile(models.Model):
             user=self.user,
             points=points,
             transaction_type=PointTransaction.TYPE_CREDIT,
+            category=transaction_category or PointTransaction.CAT_BONUS,
             reason=reason,
             balance_after=self.points_balance,
         )
 
-    def deduct_points(self, points, reason=''):
+    def deduct_points(self, points, reason='', transaction_category=None):
         if self.points_balance < points:
             raise ValueError('Solde de points insuffisant')
         self.points_balance -= points
@@ -119,6 +150,7 @@ class UserProfile(models.Model):
             user=self.user,
             points=points,
             transaction_type=PointTransaction.TYPE_DEBIT,
+            category=transaction_category or PointTransaction.CAT_EXCHANGE,
             reason=reason,
             balance_after=self.points_balance,
         )
@@ -165,6 +197,19 @@ class UserProfile(models.Model):
             return self.avatar.url
         return '/static/images/default-avatar.png'
 
+    def get_monthly_invitation_count(self):
+        from django.utils import timezone
+        now = timezone.now()
+        return User.objects.filter(
+            profile__invited_by=self.user,
+            is_email_verified=True,
+            date_joined__year=now.year,
+            date_joined__month=now.month,
+        ).count()
+
+    def can_earn_invitation_reward(self):
+        return self.get_monthly_invitation_count() < getattr(settings, 'MAX_MONTHLY_INVITATIONS', 10)
+
 
 class PointTransaction(models.Model):
     TYPE_CREDIT = 'credit'
@@ -174,9 +219,28 @@ class PointTransaction(models.Model):
         (TYPE_DEBIT, 'Débit'),
     ]
 
+    CAT_DAILY = 'daily_login'
+    CAT_MISSION = 'mission'
+    CAT_INVITATION = 'invitation'
+    CAT_BONUS = 'bonus'
+    CAT_EXCHANGE = 'exchange'
+    CAT_REFUND = 'refund'
+    CAT_CORRECTION = 'correction'
+
+    CATEGORY_CHOICES = [
+        (CAT_DAILY, 'Connexion quotidienne'),
+        (CAT_MISSION, 'Mission complétée'),
+        (CAT_INVITATION, 'Invitation'),
+        (CAT_BONUS, 'Bonus'),
+        (CAT_EXCHANGE, 'Échange'),
+        (CAT_REFUND, 'Remboursement'),
+        (CAT_CORRECTION, 'Correction administrateur'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='point_transactions')
     points = models.PositiveIntegerField()
     transaction_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default=CAT_BONUS)
     reason = models.CharField(max_length=255)
     balance_after = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)

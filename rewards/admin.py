@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.db import transaction
-from .models import Reward, RedemptionRequest, RedemptionStatusHistory
+from django.utils import timezone
+from .models import Reward, RedemptionRequest, RedemptionStatusHistory, ExchangeRequest
 from notifications.models import Notification
 from accounts.emails import send_reward_accepted_email, send_reward_rejected_email
+from accounts.models import PointTransaction
 from logs.models import ActivityLog
 
 
@@ -45,11 +47,8 @@ class RedemptionRequestAdmin(admin.ModelAdmin):
             obj.status = new_status
             obj.save()
             RedemptionStatusHistory.objects.create(
-                redemption=obj,
-                old_status=old_status,
-                new_status=new_status,
-                changed_by=request.user,
-                note=note,
+                redemption=obj, old_status=old_status,
+                new_status=new_status, changed_by=request.user, note=note,
             )
             if new_status == RedemptionRequest.STATUS_ACCEPTED:
                 Notification.objects.create(
@@ -65,7 +64,11 @@ class RedemptionRequestAdmin(admin.ModelAdmin):
                     description=f'Admin {request.user.username} a accepté : {obj.reward.name}',
                 )
             elif new_status == RedemptionRequest.STATUS_REJECTED:
-                obj.user.profile.add_points(obj.points_spent, f'Remboursement : {obj.reward.name} refusée')
+                obj.user.profile.add_points(
+                    obj.points_spent,
+                    f'Remboursement : {obj.reward.name} refusée',
+                    PointTransaction.CAT_REFUND,
+                )
                 Notification.objects.create(
                     user=obj.user,
                     title='Récompense refusée',
@@ -94,3 +97,55 @@ class RedemptionRequestAdmin(admin.ModelAdmin):
 class RedemptionStatusHistoryAdmin(admin.ModelAdmin):
     list_display = ['redemption', 'old_status', 'new_status', 'changed_by', 'created_at']
     readonly_fields = ['redemption', 'old_status', 'new_status', 'changed_by', 'created_at']
+
+
+@admin.register(ExchangeRequest)
+class ExchangeRequestAdmin(admin.ModelAdmin):
+    list_display = ['request_number', 'user', 'points_used', 'coins_requested', 'status', 'created_at', 'processed_by']
+    list_filter = ['status', 'created_at']
+    search_fields = ['user__username', 'user__email', 'request_number']
+    readonly_fields = ['request_number', 'user', 'points_used', 'coins_requested', 'created_at', 'processed_at', 'processed_by']
+    ordering = ['-created_at']
+    actions = ['validate_exchanges', 'reject_exchanges']
+
+    @transaction.atomic
+    def validate_exchanges(self, request, queryset):
+        count = 0
+        for ex in queryset.filter(status=ExchangeRequest.STATUS_PENDING):
+            ex.status = ExchangeRequest.STATUS_VALIDATED
+            ex.processed_by = request.user
+            ex.processed_at = timezone.now()
+            ex.save()
+            Notification.objects.create(
+                user=ex.user,
+                title='Échange validé !',
+                message=f'Votre échange #{ex.request_number} a été validé. {ex.coins_requested} Coins ajoutés.',
+                notification_type=Notification.TYPE_SUCCESS,
+            )
+            count += 1
+        self.message_user(request, f'{count} échange(s) validé(s).')
+    validate_exchanges.short_description = 'Valider les échanges sélectionnés'
+
+    @transaction.atomic
+    def reject_exchanges(self, request, queryset):
+        count = 0
+        for ex in queryset.filter(status=ExchangeRequest.STATUS_PENDING):
+            ex.status = ExchangeRequest.STATUS_REJECTED
+            ex.rejection_reason = 'Refus en masse par administrateur'
+            ex.processed_by = request.user
+            ex.processed_at = timezone.now()
+            ex.save()
+            ex.user.profile.add_points(
+                ex.points_used,
+                f'Remboursement échange #{ex.request_number}',
+                PointTransaction.CAT_REFUND,
+            )
+            Notification.objects.create(
+                user=ex.user,
+                title='Échange refusé',
+                message=f'Votre échange #{ex.request_number} a été refusé. {ex.points_used} points remboursés.',
+                notification_type=Notification.TYPE_ERROR,
+            )
+            count += 1
+        self.message_user(request, f'{count} échange(s) refusé(s). Points remboursés.')
+    reject_exchanges.short_description = 'Refuser les échanges sélectionnés'

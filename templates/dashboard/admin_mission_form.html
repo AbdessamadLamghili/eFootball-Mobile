@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} mission — Admin{% endblock %}
+
+{% block content %}
+<div class="page-container" style="max-width:700px;">
+    <div class="page-header">
+        <div>
+            <h1><i class="fas fa-tasks"></i> {{ action }} une mission</h1>
+        </div>
+        <a href="{% url 'dashboard:admin_missions' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="form-group">
+                    <label>{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <div class="field-hint">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% if field.errors %}
+                    <div class="field-error">{% for err in field.errors %}<span>{{ err }}</span>{% endfor %}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> {{ action }}
+                    </button>
+                    <a href="{% url 'dashboard:admin_missions' %}" class="btn btn-outline">Annuler</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+1 — Voir l'erreur exacte :
+
+
+docker-compose logs web --tail=50
+2 — Appliquer les migrations :
+
+
+docker-compose exec web python manage.py migrate
+3 — Créer le superuser :
+
+
+docker-compose exec web python manage.py createsuperuser
+4 — Importer les missions :
+
+
+docker-compose exec web python manage.py seed_data --clear-missions
+5 — Redémarrer le web :
+
+
+docker-compose restart web
+6 — Vérifier que tout est stable :
+
+
+docker-compose ps

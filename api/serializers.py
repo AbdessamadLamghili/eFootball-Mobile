@@ -15,7 +15,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'points_balance', 'total_points_earned', 'level', 'level_display',
             'current_streak', 'longest_streak', 'last_daily_reward',
-            'avatar_url', 'level_info',
+            'avatar_url', 'level_info', 'invitation_code',
         ]
 
     def get_avatar_url(self, obj):
@@ -64,7 +64,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_efootball_id(self, value):
-        if User.objects.filter(efootball_id__iexact=value).exists():
+        if value and User.objects.filter(efootball_id__iexact=value).exists():
             raise serializers.ValidationError('Cet eFootball ID est déjà utilisé.')
         return value
 
@@ -76,7 +76,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 class PointTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PointTransaction
-        fields = ['id', 'points', 'transaction_type', 'reason', 'balance_after', 'created_at']
+        fields = ['id', 'points', 'transaction_type', 'category', 'reason', 'balance_after', 'created_at']
 
 
 class DailyRewardSerializer(serializers.ModelSerializer):
@@ -124,14 +124,16 @@ class RedemptionRequestSerializer(serializers.ModelSerializer):
 
 
 class MissionSerializer(serializers.ModelSerializer):
-    type_display = serializers.CharField(source='get_mission_type_display', read_only=True)
+    code_display = serializers.CharField(source='get_mission_code_display', read_only=True)
+    validation_display = serializers.CharField(source='get_validation_type_display', read_only=True)
     is_completed = serializers.SerializerMethodField()
 
     class Meta:
         model = Mission
         fields = [
             'id', 'title', 'description', 'reward_points',
-            'mission_type', 'type_display', 'is_active', 'icon', 'is_completed',
+            'mission_code', 'code_display', 'validation_type', 'validation_display',
+            'is_active', 'icon', 'link', 'is_completed',
         ]
 
     def get_is_completed(self, obj):

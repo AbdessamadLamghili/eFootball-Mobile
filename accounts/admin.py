@@ -57,10 +57,10 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'points_balance', 'level', 'current_streak', 'last_daily_reward']
+    list_display = ['user', 'points_balance', 'level', 'current_streak', 'invitation_code', 'invited_by', 'last_daily_reward']
     list_filter = ['level']
-    search_fields = ['user__username', 'user__email']
-    readonly_fields = ['points_balance', 'total_points_earned', 'level', 'current_streak', 'longest_streak']
+    search_fields = ['user__username', 'user__email', 'invitation_code']
+    readonly_fields = ['points_balance', 'total_points_earned', 'level', 'current_streak', 'longest_streak', 'invitation_code']
 
     def avatar_preview(self, obj):
         if obj.avatar:
@@ -71,10 +71,10 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 @admin.register(PointTransaction)
 class PointTransactionAdmin(admin.ModelAdmin):
-    list_display = ['user', 'transaction_type', 'points', 'reason', 'balance_after', 'created_at']
-    list_filter = ['transaction_type', 'created_at']
+    list_display = ['user', 'transaction_type', 'category', 'points', 'reason', 'balance_after', 'created_at']
+    list_filter = ['transaction_type', 'category', 'created_at']
     search_fields = ['user__username', 'reason']
-    readonly_fields = ['user', 'points', 'transaction_type', 'reason', 'balance_after', 'created_at']
+    readonly_fields = ['user', 'points', 'transaction_type', 'category', 'reason', 'balance_after', 'created_at']
 
 
 @admin.register(DailyReward)

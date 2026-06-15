@@ -12,12 +12,14 @@
             <div class="profile-card">
                 <div class="profile-avatar-wrapper">
                     <img src="{{ profile.avatar_url }}" alt="Avatar" class="profile-avatar-lg">
-                    <div class="profile-level-badge level-{{ profile.level }}">
-                        {{ user.profile.get_level_display }}
-                    </div>
+                    <div class="profile-level-badge level-{{ profile.level }}">{{ user.profile.get_level_display }}</div>
                 </div>
                 <h2 class="profile-username">{{ user.username }}</h2>
+                {% if user.efootball_id %}
                 <div class="profile-efid"><i class="fas fa-gamepad"></i> {{ user.efootball_id }}</div>
+                {% else %}
+                <div class="profile-efid text-muted"><i class="fas fa-gamepad"></i> ID eFootball non renseigné</div>
+                {% endif %}
                 <div class="profile-email"><i class="fas fa-envelope"></i> {{ user.email }}
                     {% if user.is_email_verified %}
                     <span class="badge badge-success"><i class="fas fa-check"></i></span>
@@ -25,30 +27,48 @@
                     <span class="badge badge-warning"><i class="fas fa-exclamation"></i></span>
                     {% endif %}
                 </div>
-                <div class="profile-joined">
-                    <i class="fas fa-calendar"></i> Membre depuis {{ user.date_joined|date:"d/m/Y" }}
-                </div>
+                <div class="profile-joined"><i class="fas fa-calendar"></i> Membre depuis {{ user.date_joined|date:"d/m/Y" }}</div>
                 <a href="{% url 'accounts:profile_edit' %}" class="btn btn-outline btn-sm mt-2">
                     <i class="fas fa-edit"></i> Modifier le profil
                 </a>
+            </div>
+
+            <!-- Invitation code -->
+            <div class="invitation-sidebar-card">
+                <div class="inv-card-header"><i class="fas fa-user-plus"></i> Code d'invitation</div>
+                <div class="inv-code-big" id="invCodeFull" onclick="copyCode('{{ profile.invitation_code }}')">
+                    {{ profile.invitation_code }}
+                    <i class="fas fa-copy copy-icon"></i>
+                </div>
+                <p class="inv-desc">Partagez ce code avec vos amis pour gagner +50 pts par invitation validée.</p>
+                <div class="inv-stats-row">
+                    <span><i class="fas fa-users"></i> {{ invited_users.count }} ami(s) invité(s)</span>
+                    <span><i class="fas fa-calendar"></i> {{ monthly_invitations }}/10 ce mois</span>
+                </div>
+                {% if invited_users %}
+                <div class="invited-list">
+                    {% for inv in invited_users %}
+                    <div class="invited-item">
+                        <i class="fas fa-user-check"></i> {{ inv.username }}
+                        <span class="text-muted">{{ inv.date_joined|date:"d/m" }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <!-- Level progress -->
             <div class="level-card">
                 <div class="level-header">
                     <span class="level-name level-{{ level_info.current }}">{{ profile.get_level_display }}</span>
-                    {% if level_info.next %}
-                    <span class="level-next">→ {{ level_info.next|title }}</span>
-                    {% endif %}
+                    {% if level_info.next %}<span class="level-next">→ {{ level_info.next|title }}</span>{% endif %}
                 </div>
                 <div class="progress-bar">
                     <div class="progress-fill" style="width: {{ level_info.progress }}%"></div>
                 </div>
                 <div class="level-points">
                     {{ profile.total_points_earned|intcomma }} pts totaux
-                    {% if level_info.points_needed > 0 %}
-                    · {{ level_info.points_needed|intcomma }} pts pour le prochain niveau
-                    {% endif %}
+                    {% if level_info.points_needed > 0 %} · {{ level_info.points_needed|intcomma }} pts pour le prochain niveau{% endif %}
                 </div>
             </div>
 
@@ -72,24 +92,23 @@
         <!-- Main content -->
         <div class="profile-main">
 
-            <!-- Transactions récentes -->
+            <!-- Transactions -->
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-exchange-alt"></i> Historique des points</h3>
+                    <h3><i class="fas fa-history"></i> Historique des points</h3>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     {% if transactions %}
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="data-table">
                             <thead>
-                                <tr>
-                                    <th>Date</th><th>Raison</th><th>Points</th><th>Solde</th>
-                                </tr>
+                                <tr><th>Date</th><th>Catégorie</th><th>Raison</th><th>Points</th><th>Solde</th></tr>
                             </thead>
                             <tbody>
                                 {% for tx in transactions %}
                                 <tr>
                                     <td>{{ tx.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td><span class="badge badge-category">{{ tx.get_category_display }}</span></td>
                                     <td>{{ tx.reason }}</td>
                                     <td class="{% if tx.transaction_type == 'credit' %}text-success{% else %}text-error{% endif %}">
                                         {% if tx.transaction_type == 'credit' %}+{% else %}−{% endif %}{{ tx.points }}
@@ -101,21 +120,58 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted">Aucune transaction pour le moment.</p>
+                    <div class="empty-state"><i class="fas fa-history"></i><p>Aucune transaction pour le moment.</p></div>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Demandes de récompenses -->
+            <!-- Exchange history -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3><i class="fas fa-exchange-alt"></i> Mes échanges</h3>
+                    <a href="{% url 'rewards:exchange' %}" class="btn btn-outline btn-sm">Gérer les échanges</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if exchange_requests %}
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Numéro</th><th>Date</th><th>Points</th><th>Coins</th><th>Statut</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for ex in exchange_requests %}
+                                <tr>
+                                    <td><code>{{ ex.request_number }}</code></td>
+                                    <td>{{ ex.created_at|date:"d/m/Y" }}</td>
+                                    <td class="text-error">−{{ ex.points_used|intcomma }}</td>
+                                    <td><strong>{{ ex.coins_requested }}</strong></td>
+                                    <td>
+                                        <span class="status-badge status-{{ ex.status }}">{{ ex.get_status_display }}</span>
+                                        {% if ex.status == 'rejected' and ex.rejection_reason %}
+                                        <div class="rejection-reason">{{ ex.rejection_reason }}</div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state"><i class="fas fa-exchange-alt"></i><p>Aucun échange effectué.</p></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Redemptions -->
             <div class="card mt-4">
                 <div class="card-header">
                     <h3><i class="fas fa-gift"></i> Mes demandes de récompenses</h3>
                     <a href="{% url 'rewards:my_redemptions' %}" class="btn btn-outline btn-sm">Voir tout</a>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     {% if redemptions %}
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="data-table">
                             <thead>
                                 <tr><th>Récompense</th><th>Points</th><th>Statut</th><th>Date</th></tr>
                             </thead>
@@ -123,8 +179,8 @@
                                 {% for r in redemptions %}
                                 <tr>
                                     <td>{{ r.reward.name }}</td>
-                                    <td>{{ r.points_spent }}</td>
-                                    <td><span class="badge badge-{{ r.status }}">{{ r.get_status_display }}</span></td>
+                                    <td>{{ r.points_spent|intcomma }}</td>
+                                    <td><span class="status-badge status-{{ r.status }}">{{ r.get_status_display }}</span></td>
                                     <td>{{ r.created_at|date:"d/m/Y" }}</td>
                                 </tr>
                                 {% endfor %}
@@ -132,7 +188,7 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted">Aucune demande pour le moment.</p>
+                    <div class="empty-state"><i class="fas fa-gift"></i><p>Aucune demande pour le moment.</p></div>
                     {% endif %}
                 </div>
             </div>
@@ -140,4 +196,15 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+        const el = document.getElementById('invCodeFull');
+        if (el) { el.classList.add('copied'); setTimeout(() => el.classList.remove('copied'), 1500); }
+    });
+}
+</script>
 {% endblock %}

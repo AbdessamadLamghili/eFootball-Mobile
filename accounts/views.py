@@ -10,7 +10,7 @@ from django.views import View
 from django_ratelimit.decorators import ratelimit
 from datetime import timedelta, date
 
-from .models import User, UserProfile, EmailVerificationToken, PasswordResetToken, DailyReward
+from .models import User, UserProfile, EmailVerificationToken, PasswordResetToken, DailyReward, PointTransaction
 from .forms import (
     RegisterForm, LoginForm, PasswordResetRequestForm,
     PasswordResetConfirmForm, ProfileUpdateForm, AvatarUpdateForm,
@@ -33,11 +33,30 @@ class RegisterView(View):
     def post(self, request):
         form = RegisterForm(request.POST)
         if form.is_valid():
+            invitation_code = form.cleaned_data.get('invitation_code', '')
+            inviter_profile = None
+            if invitation_code:
+                try:
+                    inviter_profile = UserProfile.objects.select_related('user').get(
+                        invitation_code__iexact=invitation_code
+                    )
+                except UserProfile.DoesNotExist:
+                    inviter_profile = None
+
             try:
                 user = form.save()
-            except Exception as e:
+            except Exception:
                 messages.error(request, 'Une erreur est survenue lors de la création du compte. Réessayez.')
                 return render(request, self.template_name, {'form': form})
+
+            # Link invitation after user (and profile) are created
+            if inviter_profile and inviter_profile.user != user:
+                try:
+                    profile = user.profile
+                    profile.invited_by = inviter_profile.user
+                    profile.save(update_fields=['invited_by'])
+                except Exception:
+                    pass
 
             try:
                 ActivityLog.objects.create(
@@ -94,6 +113,9 @@ class LoginView(View):
             except Exception:
                 pass
 
+            # Auto-check streak-based missions after login
+            _check_streak_missions_on_login(user)
+
             next_url = request.GET.get('next', '')
             if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
                 return redirect(next_url)
@@ -127,6 +149,7 @@ def verify_email(request, token):
     user.is_email_verified = True
     user.save()
     token_obj.delete()
+
     try:
         Notification.objects.create(
             user=user,
@@ -142,6 +165,10 @@ def verify_email(request, token):
         )
     except Exception:
         pass
+
+    # Award invitation reward to inviter now that email is verified
+    _award_invitation_points(user)
+
     messages.success(request, 'Email vérifié ! Votre compte est maintenant actif.')
     return redirect('accounts:login')
 
@@ -201,17 +228,23 @@ class PasswordResetConfirmView(View):
 
 @login_required
 def profile_view(request):
+    from rewards.models import ExchangeRequest
     profile = request.user.profile
     transactions = request.user.point_transactions.all()[:20]
     daily_rewards = request.user.daily_rewards.all()[:10]
     redemptions = request.user.redemptions.select_related('reward').all()[:10]
+    exchange_requests = ExchangeRequest.objects.filter(user=request.user).order_by('-created_at')[:10]
     level_info = profile.get_level_display_info()
+    invited_users = User.objects.filter(profile__invited_by=request.user).select_related('profile')
     context = {
         'profile': profile,
         'transactions': transactions,
         'daily_rewards': daily_rewards,
         'redemptions': redemptions,
+        'exchange_requests': exchange_requests,
         'level_info': level_info,
+        'invited_users': invited_users,
+        'monthly_invitations': profile.get_monthly_invitation_count(),
     }
     return render(request, 'accounts/profile.html', context)
 
@@ -224,6 +257,8 @@ def profile_edit_view(request):
         if form.is_valid() and avatar_form.is_valid():
             form.save()
             avatar_form.save()
+            # Auto-check profile completion mission
+            _check_profile_mission(request.user)
             messages.success(request, 'Profil mis à jour avec succès.')
             return redirect('accounts:profile')
     else:
@@ -282,9 +317,9 @@ def claim_daily_reward(request):
         streak_message = f'Streak 7 jours ! +{bonus_points} points bonus !'
 
     total_points = base_points + bonus_points
-    profile.add_points(base_points, 'Connexion quotidienne')
+    profile.add_points(base_points, 'Connexion quotidienne', PointTransaction.CAT_DAILY)
     if bonus_points:
-        profile.add_points(bonus_points, f'Bonus streak {streak} jours')
+        profile.add_points(bonus_points, f'Bonus streak {streak} jours', PointTransaction.CAT_BONUS)
 
     DailyReward.objects.create(
         user=user,
@@ -308,8 +343,144 @@ def claim_daily_reward(request):
     return redirect('dashboard:home')
 
 
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
 def _get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         return x_forwarded_for.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR', '')
+
+
+def _award_invitation_points(user):
+    """Award points to inviter when invited user verifies their email."""
+    try:
+        profile = user.profile
+        if not profile.invited_by:
+            return
+        inviter = profile.invited_by
+        inviter_profile = inviter.profile
+        if not inviter.can_earn_points:
+            return
+        if not inviter_profile.can_earn_invitation_reward():
+            return
+
+        points = settings.POINTS_INVITE_FRIEND
+        inviter_profile.add_points(
+            points,
+            f'Invitation validée : {user.username}',
+            PointTransaction.CAT_INVITATION,
+        )
+        Notification.objects.create(
+            user=inviter,
+            title='Invitation validée !',
+            message=f'{user.username} a rejoint et vérifié son email. +{points} points.',
+            notification_type=Notification.TYPE_POINTS,
+        )
+    except Exception:
+        pass
+
+
+def _check_profile_mission(user):
+    """Auto-complete profile mission if all conditions are met."""
+    if not user.can_earn_points:
+        return
+    if not user.is_profile_complete:
+        return
+    from missions.models import Mission, MissionCompletion
+    try:
+        mission = Mission.objects.get(mission_code=Mission.CODE_PROFILE, is_active=True)
+    except Mission.DoesNotExist:
+        return
+    if MissionCompletion.objects.filter(user=user, mission=mission).exists():
+        return
+    MissionCompletion.objects.create(
+        user=user, mission=mission, points_earned=mission.reward_points
+    )
+    user.profile.add_points(
+        mission.reward_points,
+        f'Mission : {mission.title}',
+        PointTransaction.CAT_MISSION,
+    )
+    Notification.objects.create(
+        user=user,
+        title='Mission accomplie !',
+        message=f'"{mission.title}" complétée ! +{mission.reward_points} points.',
+        notification_type=Notification.TYPE_POINTS,
+    )
+    _check_all_missions(user)
+
+
+def _check_streak_missions_on_login(user):
+    """Check streak-based missions after login."""
+    if not user.can_earn_points:
+        return
+    try:
+        profile = user.profile
+    except Exception:
+        return
+
+    from missions.models import Mission, MissionCompletion
+    streak = profile.current_streak
+
+    for code, threshold in [(Mission.CODE_STREAK_3, 3), (Mission.CODE_STREAK_7, 7)]:
+        if streak < threshold:
+            continue
+        try:
+            mission = Mission.objects.get(mission_code=code, is_active=True)
+        except Mission.DoesNotExist:
+            continue
+        if MissionCompletion.objects.filter(user=user, mission=mission).exists():
+            continue
+        MissionCompletion.objects.create(
+            user=user, mission=mission, points_earned=mission.reward_points
+        )
+        user.profile.add_points(
+            mission.reward_points,
+            f'Mission : {mission.title}',
+            PointTransaction.CAT_MISSION,
+        )
+        Notification.objects.create(
+            user=user,
+            title='Mission accomplie !',
+            message=f'"{mission.title}" complétée ! +{mission.reward_points} points.',
+            notification_type=Notification.TYPE_POINTS,
+        )
+        _check_all_missions(user)
+
+
+def _check_all_missions(user):
+    """Check if user completed all active non-repeatable missions and award bonus."""
+    from missions.models import Mission, MissionCompletion
+    try:
+        all_missions_mission = Mission.objects.get(mission_code=Mission.CODE_ALL, is_active=True)
+    except Mission.DoesNotExist:
+        return
+    if MissionCompletion.objects.filter(user=user, mission=all_missions_mission).exists():
+        return
+
+    # Gather all active missions except CODE_ALL and CODE_INVITE
+    active_missions = Mission.objects.filter(is_active=True).exclude(
+        mission_code__in=[Mission.CODE_ALL, Mission.CODE_INVITE]
+    )
+    completed_ids = MissionCompletion.objects.filter(
+        user=user, mission__in=active_missions
+    ).values_list('mission_id', flat=True)
+
+    if set(active_missions.values_list('id', flat=True)) <= set(completed_ids):
+        MissionCompletion.objects.create(
+            user=user,
+            mission=all_missions_mission,
+            points_earned=all_missions_mission.reward_points,
+        )
+        user.profile.add_points(
+            all_missions_mission.reward_points,
+            f'Mission : {all_missions_mission.title}',
+            PointTransaction.CAT_MISSION,
+        )
+        Notification.objects.create(
+            user=user,
+            title='Toutes les missions terminées !',
+            message=f'Félicitations ! Vous avez terminé toutes les missions. +{all_missions_mission.reward_points} points bonus.',
+            notification_type=Notification.TYPE_POINTS,
+        )

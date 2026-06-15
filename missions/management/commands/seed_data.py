@@ -4,23 +4,56 @@ from rewards.models import Reward
 
 
 MISSIONS = [
-    # Quotidiennes
-    dict(title="Connexion quotidienne", description="Connectez-vous sur la plateforme aujourd'hui.", reward_points=10, mission_type=Mission.TYPE_DAILY, icon="calendar-check"),
-    dict(title="Partager votre score", description="Partagez votre score eFootball du jour sur le forum.", reward_points=15, mission_type=Mission.TYPE_DAILY, icon="share-alt"),
-    dict(title="Jouer 3 matchs", description="Disputez au moins 3 matchs eFootball aujourd'hui.", reward_points=20, mission_type=Mission.TYPE_DAILY, icon="futbol"),
-    dict(title="Gagner un match", description="Remportez au moins une victoire en match en ligne.", reward_points=25, mission_type=Mission.TYPE_DAILY, icon="trophy"),
-    # Hebdomadaires
-    dict(title="Gagner 5 matchs cette semaine", description="Remportez 5 matchs en ligne au cours de la semaine.", reward_points=80, mission_type=Mission.TYPE_WEEKLY, icon="star"),
-    dict(title="Streak de 7 jours", description="Connectez-vous 7 jours d'affilée pour obtenir votre bonus de streak.", reward_points=50, mission_type=Mission.TYPE_WEEKLY, icon="fire"),
-    dict(title="Atteindre le top 100", description="Entrez dans le top 100 du classement hebdomadaire eFootball.", reward_points=150, mission_type=Mission.TYPE_WEEKLY, icon="medal"),
-    dict(title="Inviter un ami", description="Invitez un ami à rejoindre eFootball Rewards cette semaine.", reward_points=60, mission_type=Mission.TYPE_WEEKLY, icon="user-plus"),
-    # Permanentes
-    dict(title="Première inscription", description="Créez votre compte sur eFootball Rewards.", reward_points=50, mission_type=Mission.TYPE_PERMANENT, icon="user-check"),
-    dict(title="Vérifier son email", description="Vérifiez votre adresse email pour activer votre compte.", reward_points=30, mission_type=Mission.TYPE_PERMANENT, icon="envelope-check"),
-    dict(title="Atteindre le niveau Argent", description="Accumulez 500 points pour passer au niveau Argent.", reward_points=100, mission_type=Mission.TYPE_PERMANENT, icon="medal"),
-    dict(title="Atteindre le niveau Or", description="Accumulez 1 500 points pour passer au niveau Or.", reward_points=200, mission_type=Mission.TYPE_PERMANENT, icon="trophy"),
-    dict(title="Streak de 30 jours", description="Connectez-vous 30 jours consécutifs pour le grand bonus.", reward_points=300, mission_type=Mission.TYPE_PERMANENT, icon="crown"),
-    dict(title="Premier échange", description="Réclamez votre première récompense dans le catalogue.", reward_points=75, mission_type=Mission.TYPE_PERMANENT, icon="gift"),
+    dict(
+        title="Suivre Instagram officiel",
+        description="Suivez notre compte Instagram officiel et cliquez sur « J'ai suivi » pour valider la mission. Un administrateur vérifiera votre demande.",
+        reward_points=100,
+        mission_code=Mission.CODE_INSTAGRAM,
+        validation_type=Mission.VALIDATION_MANUAL,
+        icon="instagram",
+        link="https://instagram.com/efootball",
+    ),
+    dict(
+        title="Compléter le profil",
+        description="Ajoutez un avatar, renseignez votre eFootball ID et complétez votre profil pour obtenir vos points. Validation automatique.",
+        reward_points=100,
+        mission_code=Mission.CODE_PROFILE,
+        validation_type=Mission.VALIDATION_AUTO,
+        icon="user-check",
+    ),
+    dict(
+        title="Visiter le site 3 jours consécutifs",
+        description="Connectez-vous et réclamez votre récompense quotidienne 3 jours de suite. Validation automatique après votre 3ème connexion consécutive.",
+        reward_points=150,
+        mission_code=Mission.CODE_STREAK_3,
+        validation_type=Mission.VALIDATION_AUTO,
+        icon="calendar-check",
+    ),
+    dict(
+        title="Visiter le site 7 jours consécutifs",
+        description="Connectez-vous et réclamez votre récompense quotidienne 7 jours de suite. Validation automatique après votre 7ème connexion consécutive.",
+        reward_points=250,
+        mission_code=Mission.CODE_STREAK_7,
+        validation_type=Mission.VALIDATION_AUTO,
+        icon="fire",
+    ),
+    dict(
+        title="Inviter des amis",
+        description="Partagez votre code d'invitation. Gagnez 50 points par ami qui crée un compte et vérifie son email. Maximum 10 invitations par mois.",
+        reward_points=50,
+        mission_code=Mission.CODE_INVITE,
+        validation_type=Mission.VALIDATION_AUTO,
+        icon="user-plus",
+        max_monthly_completions=10,
+    ),
+    dict(
+        title="Toutes les missions terminées",
+        description="Terminez toutes les missions actives pour recevoir ce bonus spécial. Validation automatique.",
+        reward_points=300,
+        mission_code=Mission.CODE_ALL,
+        validation_type=Mission.VALIDATION_AUTO,
+        icon="crown",
+    ),
 ]
 
 REWARDS = [
@@ -36,12 +69,22 @@ REWARDS = [
 
 
 class Command(BaseCommand):
-    help = 'Seed initial missions and rewards'
+    help = 'Seed real missions and rewards (replaces any fictional data)'
+
+    def add_arguments(self, parser):
+        parser.add_argument('--clear-missions', action='store_true', help='Delete all existing missions first')
 
     def handle(self, *args, **options):
+        if options['clear_missions']:
+            Mission.objects.all().delete()
+            self.stdout.write(self.style.WARNING('[seed_data] Missions existantes supprimées.'))
+
         created_m = 0
         for data in MISSIONS:
-            _, created = Mission.objects.get_or_create(title=data['title'], defaults=data)
+            _, created = Mission.objects.get_or_create(
+                mission_code=data['mission_code'],
+                defaults=data,
+            )
             if created:
                 created_m += 1
 

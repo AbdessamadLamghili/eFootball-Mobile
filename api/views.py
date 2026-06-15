@@ -116,9 +116,9 @@ class MissionListAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         qs = Mission.objects.filter(is_active=True)
-        mission_type = self.request.query_params.get('type')
-        if mission_type:
-            qs = qs.filter(mission_type=mission_type)
+        mission_code = self.request.query_params.get('code')
+        if mission_code:
+            qs = qs.filter(mission_code=mission_code)
         return qs
 
 

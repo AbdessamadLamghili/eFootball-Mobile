@@ -92,6 +92,9 @@
                     <a href="{% url 'rewards:my_redemptions' %}" class="dropdown-item">
                         <i class="fas fa-box"></i> Mes demandes
                     </a>
+                    <a href="{% url 'rewards:exchange' %}" class="dropdown-item">
+                        <i class="fas fa-exchange-alt"></i> Mes échanges
+                    </a>
                     {% if user.is_staff %}
                     <div class="dropdown-divider"></div>
                     <a href="{% url 'dashboard:admin_dashboard' %}" class="dropdown-item admin-link">

@@ -21,9 +21,7 @@
                 </label>
                 {{ form.username }}
                 {% if form.username.errors %}
-                <div class="field-error">
-                    {% for error in form.username.errors %}<span>{{ error }}</span>{% endfor %}
-                </div>
+                <div class="field-error">{% for error in form.username.errors %}<span>{{ error }}</span>{% endfor %}</div>
                 {% endif %}
             </div>
 
@@ -33,21 +31,18 @@
                 </label>
                 {{ form.email }}
                 {% if form.email.errors %}
-                <div class="field-error">
-                    {% for error in form.email.errors %}<span>{{ error }}</span>{% endfor %}
-                </div>
+                <div class="field-error">{% for error in form.email.errors %}<span>{{ error }}</span>{% endfor %}</div>
                 {% endif %}
             </div>
 
             <div class="form-group">
                 <label for="{{ form.efootball_id.id_for_label }}">
                     <i class="fas fa-gamepad"></i> {{ form.efootball_id.label }}
+                    <span class="label-optional">(optionnel)</span>
                 </label>
                 {{ form.efootball_id }}
                 {% if form.efootball_id.errors %}
-                <div class="field-error">
-                    {% for error in form.efootball_id.errors %}<span>{{ error }}</span>{% endfor %}
-                </div>
+                <div class="field-error">{% for error in form.efootball_id.errors %}<span>{{ error }}</span>{% endfor %}</div>
                 {% endif %}
             </div>
 
@@ -62,9 +57,7 @@
                     </button>
                 </div>
                 {% if form.password.errors %}
-                <div class="field-error">
-                    {% for error in form.password.errors %}<span>{{ error }}</span>{% endfor %}
-                </div>
+                <div class="field-error">{% for error in form.password.errors %}<span>{{ error }}</span>{% endfor %}</div>
                 {% endif %}
             </div>
 
@@ -79,9 +72,20 @@
                     </button>
                 </div>
                 {% if form.confirm_password.errors %}
-                <div class="field-error">
-                    {% for error in form.confirm_password.errors %}<span>{{ error }}</span>{% endfor %}
-                </div>
+                <div class="field-error">{% for error in form.confirm_password.errors %}<span>{{ error }}</span>{% endfor %}</div>
+                {% endif %}
+            </div>
+
+            <!-- Invitation code -->
+            <div class="form-group invitation-group">
+                <label for="{{ form.invitation_code.id_for_label }}">
+                    <i class="fas fa-ticket-alt"></i> {{ form.invitation_code.label }}
+                    <span class="label-optional">(optionnel)</span>
+                </label>
+                {{ form.invitation_code }}
+                <div class="field-hint"><i class="fas fa-info-circle"></i> Exemple : EFOOT-4582. Laissez vide si vous n'en avez pas.</div>
+                {% if form.invitation_code.errors %}
+                <div class="field-error">{% for error in form.invitation_code.errors %}<span>{{ error }}</span>{% endfor %}</div>
                 {% endif %}
             </div>
 
