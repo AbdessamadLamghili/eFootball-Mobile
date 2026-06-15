@@ -13,6 +13,7 @@
             <a href="{% url 'dashboard:admin_exchanges' %}" class="btn btn-outline btn-sm"><i class="fas fa-exchange-alt"></i> Échanges {% if pending_exchanges %}<span class="badge-count">{{ pending_exchanges }}</span>{% endif %}</a>
             <a href="{% url 'dashboard:admin_missions' %}" class="btn btn-outline btn-sm"><i class="fas fa-tasks"></i> Missions</a>
             <a href="{% url 'dashboard:admin_mission_requests' %}" class="btn btn-outline btn-sm"><i class="fas fa-inbox"></i> Demandes missions {% if pending_mission_requests %}<span class="badge-count">{{ pending_mission_requests }}</span>{% endif %}</a>
+            <a href="{% url 'dashboard:admin_verifications' %}" class="btn btn-outline btn-sm"><i class="fas fa-shield-alt"></i> Vérifications</a>
             <a href="{% url 'admin:index' %}" class="btn btn-outline btn-sm"><i class="fas fa-cogs"></i> Django Admin</a>
         </div>
     </div>

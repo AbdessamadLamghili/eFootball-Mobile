@@ -29,6 +29,7 @@
                         <tr>
                             <th>Utilisateur</th>
                             <th>Mission</th>
+                            <th>Instagram</th>
                             <th>Points</th>
                             <th>Date soumission</th>
                             <th>Statut</th>
@@ -43,6 +44,13 @@
                                 <div class="text-muted" style="font-size:0.8rem;">{{ mr.user.email }}</div>
                             </td>
                             <td>{{ mr.mission.title }}</td>
+                            <td>
+                                {% if mr.instagram_username %}
+                                <span style="background:#f3f4f6;padding:2px 8px;border-radius:4px;font-family:monospace;">@{{ mr.instagram_username }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
                             <td><span class="pts-badge"><i class="fas fa-star"></i> {{ mr.mission.reward_points }}</span></td>
                             <td>{{ mr.created_at|date:"d/m/Y H:i" }}</td>
                             <td>

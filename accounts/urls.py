@@ -13,4 +13,5 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.profile_edit_view, name='profile_edit'),
     path('claim-daily-reward/', views.claim_daily_reward, name='claim_daily_reward'),
+    path('verification/', views.verification_request_view, name='verification_request'),
 ]

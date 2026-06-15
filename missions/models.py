@@ -119,6 +119,7 @@ class MissionRequest(models.Model):
         related_name='mission_requests'
     )
     mission = models.ForeignKey(Mission, on_delete=models.CASCADE, related_name='requests')
+    instagram_username = models.CharField(max_length=100, blank=True, verbose_name='Nom d\'utilisateur Instagram')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     rejection_reason = models.TextField(blank=True, verbose_name='Raison du refus')
     created_at = models.DateTimeField(auto_now_add=True)

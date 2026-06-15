@@ -410,8 +410,45 @@ eFootball-Mobile/
 |---|---|
 | **Missions** | 6 missions réelles (Instagram, profil, streaks, invitations) |
 | **Code d'invitation** | Chaque utilisateur a un code EFOOT-XXXX unique |
-| **Échanges** | 1000 points = 100 Coins eFootball (validés par admin) |
+| **Échanges** | 1000 points = 500 Coins eFootball (validés par admin) |
 | **Connexion quotidienne** | +50 pts/jour, bonus de streak |
 | **Notifications** | Temps réel pour toutes les actions |
 | **Admin panel** | Gestion missions, échanges, demandes, utilisateurs |
 | **API REST** | Endpoints JWT pour intégration mobile |
+
+---
+
+## Accès Administrateur
+
+> **CONFIDENTIEL — Ne pas partager ces informations**
+
+| Champ | Valeur |
+|---|---|
+| **URL panneau admin** | `/admin-panel/` |
+| **URL Django admin** | `/admin/` |
+| **Email** | `admin@efootball.com` |
+| **Mot de passe** | `Admin@eFootball2024!` |
+| **Username** | `admin` |
+
+### Créer le compte admin
+```bash
+python manage.py create_site_admin
+# ou avec Docker :
+docker compose exec web python manage.py create_site_admin
+```
+
+### Vider le catalogue des récompenses
+```bash
+python manage.py clear_rewards
+# ou avec Docker :
+docker compose exec web python manage.py clear_rewards
+```
+
+### Vérification des comptes utilisateurs
+Les utilisateurs doivent faire vérifier leur compte pour accéder aux fonctionnalités.
+Le flux est :
+1. L'utilisateur clique sur "Vérifier mon compte" dans son tableau de bord
+2. L'admin reçoit la demande dans `/admin-panel/verifications/`
+3. L'admin copie le code affiché et l'envoie manuellement par email à l'utilisateur
+4. L'utilisateur entre le code sur le site
+5. L'admin clique "Valider" → le compte est activé
