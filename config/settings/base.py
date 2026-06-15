@@ -78,11 +78,19 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
+<<<<<<< Updated upstream
         'NAME': os.environ.get('DB_NAME') or config('DB_NAME', default='efootball_rewards'),
         'USER': os.environ.get('DB_USER') or config('DB_USER', default='efootball'),
         'PASSWORD': os.environ.get('DB_PASSWORD') or config('DB_PASSWORD', default='efootball_secret'),
         'HOST': os.environ.get('DB_HOST') or config('DB_HOST', default='db'),
         'PORT': os.environ.get('DB_PORT') or config('DB_PORT', default='5432'),
+=======
+        'NAME': config('DB_NAME', default='efootball_rewards'),
+        'USER': config('DB_USER', default='efootball'),
+        'PASSWORD': config('DB_PASSWORD', default='efootball_secret'),
+        'HOST': config('DB_HOST', default='db'),
+        'PORT': config('DB_PORT', default='5432'),
+>>>>>>> Stashed changes
         'OPTIONS': {
             'connect_timeout': 10,
         },
