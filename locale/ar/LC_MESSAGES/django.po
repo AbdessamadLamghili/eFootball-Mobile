@@ -1,0 +1,287 @@
+# Arabic translations for eFootball Rewards
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ar\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+# base.html
+msgid "Gagnez des points et réclamez des récompenses"
+msgstr "اكسب النقاط واحصل على المكافآت"
+
+msgid "Tableau de bord"
+msgstr "لوحة التحكم"
+
+msgid "Missions"
+msgstr "المهام"
+
+msgid "Notifications"
+msgstr "الإشعارات"
+
+msgid "Tout lire"
+msgstr "تحديد الكل كمقروء"
+
+msgid "Aucune notification"
+msgstr "لا توجد إشعارات"
+
+msgid "Voir tout"
+msgstr "عرض الكل"
+
+msgid "Mon profil"
+msgstr "ملفي الشخصي"
+
+msgid "Mes demandes"
+msgstr "طلباتي"
+
+msgid "Mes échanges"
+msgstr "مبادلاتي"
+
+msgid "Déconnexion"
+msgstr "تسجيل الخروج"
+
+msgid "Changer le thème"
+msgstr "تغيير المظهر"
+
+msgid "Connexion"
+msgstr "تسجيل الدخول"
+
+msgid "Inscription"
+msgstr "إنشاء حساب"
+
+msgid "CGU"
+msgstr "شروط الاستخدام"
+
+msgid "Confidentialité"
+msgstr "الخصوصية"
+
+msgid "Contact"
+msgstr "تواصل معنا"
+
+# login.html
+msgid "Content de vous revoir !"
+msgstr "مرحباً بعودتك !"
+
+msgid "Se souvenir de moi"
+msgstr "تذكرني"
+
+msgid "Mot de passe oublié ?"
+msgstr "نسيت كلمة المرور؟"
+
+msgid "Se connecter"
+msgstr "تسجيل الدخول"
+
+msgid "Pas encore de compte ?"
+msgstr "ليس لديك حساب؟"
+
+msgid "S'inscrire"
+msgstr "إنشاء حساب"
+
+# register.html
+msgid "Créer un compte"
+msgstr "إنشاء حساب جديد"
+
+msgid "Rejoignez eFootball Rewards et gagnez des récompenses"
+msgstr "انضم إلى eFootball Rewards واربح المكافآت"
+
+msgid "optionnel"
+msgstr "اختياري"
+
+msgid "Exemple : EFOOT-4582. Laissez vide si vous n'en avez pas."
+msgstr "مثال: EFOOT-4582. اتركه فارغاً إن لم يكن لديك كود."
+
+msgid "Créer mon compte"
+msgstr "إنشاء الحساب"
+
+msgid "Vous avez déjà un compte ?"
+msgstr "هل لديك حساب بالفعل؟"
+
+# user_dashboard.html
+msgid "Compte non vérifié"
+msgstr "الحساب غير موثق"
+
+msgid "Certaines fonctionnalités sont désactivées."
+msgstr "بعض الميزات معطلة."
+
+msgid "Vérifier mon compte"
+msgstr "توثيق حسابي"
+
+msgid "jours de streak"
+msgstr "أيام متتالية"
+
+msgid "invitation(s)"
+msgstr "دعوة"
+
+msgid "points"
+msgstr "نقطة"
+
+msgid "Mon code"
+msgstr "كودي"
+
+msgid "Cliquez pour copier"
+msgstr "انقر للنسخ"
+
+msgid "Récompense quotidienne disponible !"
+msgstr "المكافأة اليومية متاحة !"
+
+msgid "Réclamez vos +50 points du jour et continuez votre streak."
+msgstr "احصل على 50 نقطة اليوم وواصل سلسلتك."
+
+msgid "Réclamer +50 pts"
+msgstr "احصل على +50 نقطة"
+
+msgid "Vérifiez votre email pour gagner des points et réclamer des récompenses."
+msgstr "وثّق بريدك الإلكتروني لكسب النقاط والحصول على المكافآت."
+
+msgid "Récompense quotidienne réclamée aujourd'hui. Revenez demain !"
+msgstr "تم الحصول على المكافأة اليومية. عد غداً !"
+
+msgid "Streak :"
+msgstr "السلسلة:"
+
+msgid "jours"
+msgstr "أيام"
+
+msgid "Échangez vos points contre des Coins !"
+msgstr "بادل نقاطك بـ Coins !"
+
+msgid "Échanger maintenant"
+msgstr "بادل الآن"
+
+msgid "Points disponibles"
+msgstr "النقاط المتاحة"
+
+msgid "Streak actuel"
+msgstr "السلسلة الحالية"
+
+msgid "Invitations validées"
+msgstr "الدعوات المصادق عليها"
+
+msgid "Échanges en attente"
+msgstr "المبادلات المعلقة"
+
+msgid "Prochain :"
+msgstr "التالي:"
+
+msgid "Niveau maximum atteint !"
+msgstr "وصلت للمستوى الأقصى !"
+
+msgid "Missions actives"
+msgstr "المهام النشطة"
+
+msgid "Manuelle"
+msgstr "يدوي"
+
+msgid "Voir"
+msgstr "عرض"
+
+msgid "Aucune mission active."
+msgstr "لا توجد مهام نشطة."
+
+msgid "Échanges récents"
+msgstr "المبادلات الأخيرة"
+
+msgid "Aucun échange effectué."
+msgstr "لم يتم إجراء أي مبادلة."
+
+msgid "Échanger mes points"
+msgstr "بادل نقاطي"
+
+msgid "Il faut 1000 points minimum pour échanger."
+msgstr "تحتاج 1000 نقطة على الأقل للمبادلة."
+
+msgid "Historique des points"
+msgstr "سجل النقاط"
+
+msgid "Aucune activité récente."
+msgstr "لا يوجد نشاط حديث."
+
+msgid "Mon code d'invitation"
+msgstr "كود الدعوة الخاص بي"
+
+msgid "Copier"
+msgstr "نسخ"
+
+msgid "Partagez ce code avec vos amis. Gagnez +50 pts par ami qui crée un compte et vérifie son email."
+msgstr "شارك هذا الكود مع أصدقائك. اكسب +50 نقطة لكل صديق يسجل ويوثق حسابه."
+
+msgid "invitation(s) validée(s)"
+msgstr "دعوة مصادق عليها"
+
+# missions/list.html
+msgid "Complétez des missions pour gagner des points"
+msgstr "أكمل المهام لكسب النقاط"
+
+msgid "Validation manuelle"
+msgstr "مراجعة يدوية"
+
+msgid "Automatique"
+msgstr "تلقائي"
+
+msgid "Accéder au lien"
+msgstr "الوصول للرابط"
+
+msgid "Accomplie"
+msgstr "مكتملة"
+
+msgid "En attente de validation"
+msgstr "في انتظار المراجعة"
+
+msgid "Validation automatique"
+msgstr "مراجعة تلقائية"
+
+msgid "Votre nom d'utilisateur Instagram (@username)"
+msgstr "اسم المستخدم على Instagram (@username)"
+
+msgid "Suivre sur Instagram"
+msgstr "متابعة على Instagram"
+
+msgid "Envoyer la demande"
+msgstr "إرسال الطلب"
+
+msgid "J'ai complété"
+msgstr "أكملت هذه المهمة"
+
+msgid "Compléter"
+msgstr "أكمل"
+
+msgid "Aucune mission disponible."
+msgstr "لا توجد مهام متاحة."
+
+msgid "Comment fonctionnent les missions ?"
+msgstr "كيف تعمل المهام؟"
+
+msgid "Automatiques"
+msgstr "تلقائية"
+
+msgid "Complétées automatiquement lorsque les conditions sont remplies (profil complet, streak de connexions, invitations)."
+msgstr "تكتمل تلقائياً عند استيفاء الشروط (الملف مكتمل، سلسلة تسجيل الدخول، الدعوات)."
+
+msgid "Manuelles"
+msgstr "يدوية"
+
+msgid "Soumettez votre demande, un administrateur la validera sous 24-48h."
+msgstr "أرسل طلبك، سيراجعه المسؤول خلال 24-48 ساعة."
+
+msgid "Invitations"
+msgstr "الدعوات"
+
+# notifications/list.html
+msgid "Aucune notification."
+msgstr "لا توجد إشعارات."
+
+# blocktrans strings
+msgid "Bonjour, <span class=\"accent\">%(username)s</span> !"
+msgstr "مرحباً، <span class=\"accent\">%(username)s</span> !"
+
+msgid "%(pts)s points disponibles — 1000 pts = 100 Coins eFootball"
+msgstr "%(pts)s نقطة متاحة — 1000 نقطة = 100 Coins eFootball"
+
+msgid "%(pts)s points pour le prochain niveau"
+msgstr "%(pts)s نقطة للمستوى التالي"
+
+msgid "Tout marquer comme lu (%(count)s)"
+msgstr "تحديد الكل كمقروء (%(count)s)"
+
+msgid "Partagez votre code d'invitation depuis votre profil. +%(pts)s pts par ami invité (max 10/mois)."
+msgstr "شارك كود دعوتك من ملفك الشخصي. +%(pts)s نقطة لكل صديق مدعو (بحد أقصى 10/شهر)."

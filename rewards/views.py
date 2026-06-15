@@ -13,22 +13,6 @@ from accounts.models import PointTransaction
 
 
 @login_required
-def reward_catalog(request):
-    rewards = Reward.objects.filter(is_active=True).order_by('points_cost')
-    category = request.GET.get('category')
-    if category:
-        rewards = rewards.filter(category=category)
-    paginator = Paginator(rewards, 12)
-    page = paginator.get_page(request.GET.get('page', 1))
-    return render(request, 'rewards/catalog.html', {
-        'page': page,
-        'category': category,
-        'categories': Reward.CATEGORY_CHOICES,
-        'user_points': request.user.profile.points_balance,
-    })
-
-
-@login_required
 def reward_detail(request, pk):
     reward = get_object_or_404(Reward, pk=pk, is_active=True)
     return render(request, 'rewards/detail.html', {
@@ -42,18 +26,18 @@ def reward_detail(request, pk):
 @transaction.atomic
 def redeem_reward(request, pk):
     if request.method != 'POST':
-        return redirect('rewards:catalog')
+        return redirect('rewards:my_redemptions')
 
     reward = get_object_or_404(Reward, pk=pk, is_active=True)
     user = request.user
 
     if not user.can_redeem:
         messages.warning(request, 'Vous devez vérifier votre email pour demander des récompenses.')
-        return redirect('rewards:catalog')
+        return redirect('rewards:my_redemptions')
 
     if not reward.is_available:
         messages.error(request, 'Cette récompense n\'est plus disponible.')
-        return redirect('rewards:catalog')
+        return redirect('rewards:my_redemptions')
 
     profile = user.profile
     if profile.points_balance < reward.points_cost:

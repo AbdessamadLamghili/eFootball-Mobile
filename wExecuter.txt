@@ -1,24 +1,45 @@
-1 — Voir l'erreur exacte :
+Dans le dossier de ton projet, exécute ces commandes dans l'ordre :
 
+**1. Créer le fichier `.env`** (s'il n'existe pas) :
+```
+SECRET_KEY=une-cle-secrete-longue-ici
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
 
-docker-compose logs web --tail=50
-2 — Appliquer les migrations :
+DB_NAME=efootball_rewards
+DB_USER=efootball
+DB_PASSWORD=efootball_secret
+DB_HOST=db
+DB_PORT=5432
 
+REDIS_URL=redis://redis:6379/1
 
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+SITE_URL=http://localhost
+```
+
+**2. Lancer les conteneurs** :
+```bash
+docker-compose up -d --build
+```
+
+**3. Appliquer les migrations** :
+```bash
 docker-compose exec web python manage.py migrate
-3 — Créer le superuser :
+```
 
+**4. Créer le compte admin** :
+```bash
+docker-compose exec web python manage.py create_site_admin
+```
 
-docker-compose exec web python manage.py createsuperuser
-4 — Importer les missions :
-
-
+**5. Importer les missions** :
+```bash
 docker-compose exec web python manage.py seed_data --clear-missions
-5 — Redémarrer le web :
+```
 
-
-docker-compose restart web
-6 — Vérifier que tout est stable :
-
-
-docker-compose ps
+**6. Accéder au site** :
+- Site : **http://localhost**
+- Admin panel : **http://localhost/admin-panel/**
+- Email admin : `admin@efootball.com`
+- Mot de passe : `Admin@eFootball2024!`

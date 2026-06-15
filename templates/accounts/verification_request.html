@@ -3,6 +3,23 @@
 
 {% block title %}Vérification du compte — eFootball Rewards{% endblock %}
 
+{% block extra_css %}
+<style>
+.info-block {
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    border-left: 4px solid;
+}
+.info-block p { margin: 0 0 6px; }
+.info-block p:last-child { margin-bottom: 0; }
+.info-block-info    { background: rgba(96,165,250,.12); border-color: var(--info); }
+.info-block-warning { background: rgba(245,158,11,.12); border-color: var(--warning); }
+.info-block-success { background: rgba(16,185,129,.12); border-color: var(--success); }
+.info-block-danger  { background: rgba(239,68,68,.12);  border-color: var(--error); }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="auth-page">
     <div class="auth-card" style="max-width:560px;">
@@ -22,8 +39,8 @@
 
         {% if not existing_request %}
         {# Step 1: no request yet #}
-        <div class="verification-info" style="background:#f0f9ff;border-radius:8px;padding:16px;margin-bottom:20px;">
-            <p><i class="fas fa-info-circle" style="color:#3b82f6;"></i>
+        <div class="info-block info-block-info">
+            <p><i class="fas fa-info-circle" style="color:var(--info);"></i>
             <strong>Comment ça marche :</strong></p>
             <ol style="padding-left:20px;line-height:1.8;">
                 <li>Cliquez sur <strong>Demander la vérification</strong></li>
@@ -42,8 +59,8 @@
 
         {% elif existing_request.status == 'pending' %}
         {# Step 2: request sent, waiting for admin to send code #}
-        <div class="verification-info" style="background:#fef9c3;border-radius:8px;padding:16px;margin-bottom:20px;">
-            <p><i class="fas fa-clock" style="color:#d97706;"></i>
+        <div class="info-block info-block-warning">
+            <p><i class="fas fa-clock" style="color:var(--warning);"></i>
             <strong>Demande envoyée !</strong> L'administrateur va vous envoyer un code par email sous peu.</p>
             <p style="margin-top:8px;">Une fois le code reçu, entrez-le ci-dessous :</p>
         </div>
@@ -71,8 +88,8 @@
 
         {% elif existing_request.status == 'code_entered' %}
         {# Step 3: code submitted, waiting for admin to validate #}
-        <div class="verification-info" style="background:#dcfce7;border-radius:8px;padding:16px;margin-bottom:20px;">
-            <p><i class="fas fa-hourglass-half" style="color:#16a34a;"></i>
+        <div class="info-block info-block-success">
+            <p><i class="fas fa-hourglass-half" style="color:var(--success);"></i>
             <strong>Code soumis !</strong> Votre demande est en attente de validation par l'administrateur.</p>
             <p style="margin-top:8px;">Votre compte sera activé dès que l'admin valide votre demande.
             Revenez vérifier plus tard.</p>
@@ -87,8 +104,8 @@
 
         {% elif existing_request.status == 'rejected' %}
         {# Rejected: allow retry #}
-        <div class="verification-info" style="background:#fee2e2;border-radius:8px;padding:16px;margin-bottom:20px;">
-            <p><i class="fas fa-times-circle" style="color:#dc2626;"></i>
+        <div class="info-block info-block-danger">
+            <p><i class="fas fa-times-circle" style="color:var(--error);"></i>
             <strong>Demande refusée.</strong> Vous pouvez soumettre une nouvelle demande.</p>
         </div>
         <form method="post">

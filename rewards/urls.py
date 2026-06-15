@@ -4,7 +4,6 @@ from . import views
 app_name = 'rewards'
 
 urlpatterns = [
-    path('', views.reward_catalog, name='catalog'),
     path('exchange/', views.exchange_page, name='exchange'),
     path('exchange/create/', views.create_exchange, name='create_exchange'),
     path('my-redemptions/', views.my_redemptions, name='my_redemptions'),

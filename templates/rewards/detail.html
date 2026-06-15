@@ -3,7 +3,7 @@
 {% block title %}{{ reward.name }} — eFootball Rewards{% endblock %}
 {% block content %}
 <div class="page-container">
-    <a href="{% url 'rewards:catalog' %}" class="back-link"><i class="fas fa-arrow-left"></i> Retour au catalogue</a>
+    <a href="{% url 'dashboard:user_dashboard' %}" class="back-link"><i class="fas fa-arrow-left"></i> Retour au tableau de bord</a>
     <div class="reward-detail-layout">
         <div class="reward-detail-image">
             <img src="{{ reward.image_url }}" alt="{{ reward.name }}">

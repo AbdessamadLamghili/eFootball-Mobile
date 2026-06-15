@@ -209,11 +209,11 @@ class UserProfile(models.Model):
     def get_monthly_invitation_count(self):
         from django.utils import timezone
         now = timezone.now()
-        return User.objects.filter(
-            profile__invited_by=self.user,
-            is_email_verified=True,
-            date_joined__year=now.year,
-            date_joined__month=now.month,
+        return self.user.point_transactions.filter(
+            category=PointTransaction.CAT_INVITATION,
+            transaction_type=PointTransaction.TYPE_CREDIT,
+            created_at__year=now.year,
+            created_at__month=now.month,
         ).count()
 
     def can_earn_invitation_reward(self):

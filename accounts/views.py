@@ -353,32 +353,40 @@ def _get_client_ip(request):
 
 
 def _award_invitation_points(user):
-    """Award points to inviter when invited user verifies their email."""
-    try:
-        profile = user.profile
-        if not profile.invited_by:
-            return
-        inviter = profile.invited_by
-        inviter_profile = inviter.profile
-        if not inviter.can_earn_points:
-            return
-        if not inviter_profile.can_earn_invitation_reward():
-            return
+    """Award points to inviter when invited user's account is verified."""
+    profile = user.profile
+    if not profile.invited_by:
+        return
 
-        points = settings.POINTS_INVITE_FRIEND
-        inviter_profile.add_points(
-            points,
-            f'Invitation validée : {user.username}',
-            PointTransaction.CAT_INVITATION,
-        )
-        Notification.objects.create(
-            user=inviter,
-            title='Invitation validée !',
-            message=f'{user.username} a rejoint et vérifié son email. +{points} points.',
-            notification_type=Notification.TYPE_POINTS,
-        )
-    except Exception:
-        pass
+    inviter = profile.invited_by
+    inviter_profile = inviter.profile
+
+    # Already rewarded for this specific user
+    if PointTransaction.objects.filter(
+        user=inviter,
+        category=PointTransaction.CAT_INVITATION,
+        reason__icontains=user.username,
+    ).exists():
+        return
+
+    if not inviter.can_earn_points:
+        return
+
+    if not inviter_profile.can_earn_invitation_reward():
+        return
+
+    points = settings.POINTS_INVITE_FRIEND
+    inviter_profile.add_points(
+        points,
+        f'Invitation validée : {user.username}',
+        PointTransaction.CAT_INVITATION,
+    )
+    Notification.objects.create(
+        user=inviter,
+        title='Invitation validée !',
+        message=f'{user.username} a rejoint et vérifié son compte. +{points} points.',
+        notification_type=Notification.TYPE_POINTS,
+    )
 
 
 def _check_profile_mission(user):

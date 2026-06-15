@@ -567,7 +567,11 @@ def admin_verification_action(request, pk):
         user.save(update_fields=['is_email_verified'])
         ver_request.status = AccountVerificationRequest.STATUS_VERIFIED
         ver_request.save()
-        _award_invitation_points(user)
+        try:
+            _award_invitation_points(user)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception('_award_invitation_points failed for user %s', user.pk)
         Notification.objects.create(
             user=user,
             title='Compte vérifié !',

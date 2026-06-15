@@ -41,7 +41,6 @@
 
 {% block extra_js %}
 <script>
-// Mark single read
 document.querySelectorAll('.mark-read-btn').forEach(btn => {
     btn.addEventListener('click', async function() {
         const id = this.dataset.id;
@@ -54,7 +53,6 @@ document.querySelectorAll('.mark-read-btn').forEach(btn => {
     });
 });
 
-// Mark all read
 const markAllBtn = document.getElementById('markAllReadBtn');
 if (markAllBtn) {
     markAllBtn.addEventListener('click', async function() {
