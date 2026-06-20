@@ -1,0 +1,569 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ league.name }} — eFootball Rewards{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/leagues.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <!-- ── League Header ─────────────────────────────────────── -->
+  <div class="league-detail-header">
+    <div class="league-detail-left">
+      {% if league.logo %}
+      <img src="{{ league.logo.url }}" alt="Logo" class="league-detail-logo">
+      {% else %}
+      <div class="league-detail-logo-ph">
+        <i class="fas fa-trophy"></i>
+      </div>
+      {% endif %}
+      <div class="league-detail-info">
+        <div class="league-detail-meta">
+          <span class="league-status-badge badge-{{ league.status }}">
+            {% if league.status == 'setup' %}<i class="fas fa-cog"></i>
+            {% elif league.status == 'active' %}<i class="fas fa-play-circle"></i>
+            {% else %}<i class="fas fa-flag-checkered"></i>{% endif %}
+            {{ league.get_status_display }}
+          </span>
+          {% if league.season %}
+          <span class="league-detail-season"><i class="fas fa-calendar-alt"></i> {{ league.season }}</span>
+          {% endif %}
+          <span class="text-secondary"><i class="fas fa-users"></i> {{ participants|length }} participant(s)</span>
+        </div>
+        <h1 class="league-detail-name">{{ league.name }}</h1>
+        {% if league.description %}
+        <p class="league-detail-desc">{{ league.description }}</p>
+        {% endif %}
+        {% if league.is_active %}
+        <div class="league-detail-dates">
+          <span><i class="fas fa-calendar-check"></i> Démarrée le {{ league.started_at|date:"d/m/Y" }}</span>
+          <span class="ml-3">
+            <i class="fas fa-futbol"></i>
+            {{ league.matches.count }} match(s) ·
+            {{ league.matches.filter }}
+          </span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="league-detail-actions">
+      {% if user.is_staff and league.is_setup %}
+      <form method="post" action="{% url 'leagues:league_start' league.pk %}"
+            onsubmit="return confirm('Démarrer la ligue ? Les participants seront définitivement verrouillés.')">
+        {% csrf_token %}
+        {% if participants|length >= 2 %}
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-play"></i> Démarrer la ligue
+        </button>
+        {% else %}
+        <button type="button" class="btn btn-primary" disabled
+                title="Il faut au moins 2 participants">
+          <i class="fas fa-play"></i> Démarrer la ligue
+        </button>
+        {% endif %}
+      </form>
+      {% endif %}
+      <a href="{% url 'leagues:league_list' %}" class="btn btn-outline btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Champion Banner ───────────────────────────────────── -->
+  {% if league.is_closed and league.champion %}
+  <div class="champion-banner">
+    <div class="champion-trophy-icon"><i class="fas fa-trophy"></i></div>
+    <div class="champion-text">
+      <div class="champion-label">Champion de la ligue</div>
+      <div class="champion-name">{{ league.champion.username }}</div>
+    </div>
+    <div class="champion-confetti">🏆</div>
+  </div>
+  {% endif %}
+
+  <!-- ── Tabs ──────────────────────────────────────────────── -->
+  <div class="league-tabs" id="leagueTabs">
+    <button class="tab-btn" data-tab="standings">
+      <i class="fas fa-list-ol"></i>
+      <span>Classement</span>
+    </button>
+    <button class="tab-btn" data-tab="matches">
+      <i class="fas fa-futbol"></i>
+      <span>Matchs</span>
+      {% if league.is_active %}
+      <span class="tab-count">{{ league.matches.count }}</span>
+      {% endif %}
+    </button>
+    <button class="tab-btn" data-tab="participants">
+      <i class="fas fa-users"></i>
+      <span>Participants</span>
+      <span class="tab-count">{{ participants|length }}</span>
+    </button>
+    {% if league.rules %}
+    <button class="tab-btn" data-tab="rules">
+      <i class="fas fa-book"></i>
+      <span>Règlement</span>
+    </button>
+    {% endif %}
+    {% if user.is_staff %}
+    <button class="tab-btn" data-tab="results">
+      <i class="fas fa-clipboard-check"></i>
+      <span>Résultats soumis</span>
+      {% if pending_count %}
+      <span class="tab-badge-alert">{{ pending_count }}</span>
+      {% endif %}
+    </button>
+    <button class="tab-btn" data-tab="logs">
+      <i class="fas fa-history"></i>
+      <span>Journal</span>
+    </button>
+    {% endif %}
+  </div>
+
+  <!-- ── TAB: Classement ───────────────────────────────────── -->
+  <div class="tab-panel" id="tab-standings">
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-list-ol"></i> Classement</h3>
+        {% if league.is_active %}
+        <span class="text-secondary text-sm">Mis à jour en temps réel</span>
+        {% endif %}
+      </div>
+      {% if standings %}
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table standings-table">
+            <thead>
+              <tr>
+                <th class="col-rank">#</th>
+                <th class="col-team">Équipe</th>
+                <th title="Matchs joués">PJ</th>
+                <th title="Victoires" class="col-v">V</th>
+                <th title="Nuls">N</th>
+                <th title="Défaites" class="col-d">D</th>
+                <th title="Buts pour">BP</th>
+                <th title="Buts contre">BC</th>
+                <th title="Différence de buts">DB</th>
+                <th title="Points" class="col-pts">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for standing in standings %}
+              <tr class="{% if league.is_closed and forloop.first %}champion-row{% endif %}{% if standing.participant.user == user %} my-row{% endif %}">
+                <td class="col-rank">
+                  {% if league.is_closed and forloop.first %}
+                  <span class="rank-crown"><i class="fas fa-crown"></i></span>
+                  {% elif forloop.counter == 2 %}
+                  <span class="rank-num rank-2">{{ forloop.counter }}</span>
+                  {% elif forloop.counter == 3 %}
+                  <span class="rank-num rank-3">{{ forloop.counter }}</span>
+                  {% else %}
+                  <span class="rank-num">{{ forloop.counter }}</span>
+                  {% endif %}
+                </td>
+                <td class="col-team">
+                  <div class="team-cell">
+                    <span class="team-cell-name">{{ standing.participant.team_name }}</span>
+                    <span class="team-cell-player">{{ standing.participant.user.username }}</span>
+                  </div>
+                </td>
+                <td>{{ standing.played }}</td>
+                <td class="col-v text-success">{{ standing.wins }}</td>
+                <td>{{ standing.draws }}</td>
+                <td class="col-d text-error">{{ standing.losses }}</td>
+                <td>{{ standing.goals_for }}</td>
+                <td>{{ standing.goals_against }}</td>
+                <td class="{% if standing.goal_difference > 0 %}text-success{% elif standing.goal_difference < 0 %}text-error{% endif %}">
+                  {% if standing.goal_difference > 0 %}+{% endif %}{{ standing.goal_difference }}
+                </td>
+                <td class="col-pts"><strong>{{ standing.points }}</strong></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% else %}
+      <div class="card-body">
+        <div class="empty-state">
+          <i class="fas fa-list-ol"></i>
+          <p>Le classement sera disponible après le démarrage de la ligue.</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── TAB: Matchs ───────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-matches">
+    {% if matches_by_round %}
+    {% for round_num, round_matches in matches_by_round.items %}
+    <div class="match-round-block">
+      <div class="round-header">
+        <span class="round-title">
+          <i class="fas fa-calendar-day"></i> Journée {{ round_num }}
+        </span>
+        <span class="round-count">{{ round_matches|length }} match(s)</span>
+      </div>
+
+      {% for match in round_matches %}
+      <div class="match-card status-{{ match.status }}">
+        <div class="match-card-inner">
+
+          <!-- Home team -->
+          <div class="match-team match-team-home {% if match.status == 'validated' and match.home_score > match.away_score %}team-winner{% endif %}">
+            <span class="match-team-name">{{ match.home_participant.team_name }}</span>
+            <span class="match-team-player">{{ match.home_participant.user.username }}</span>
+          </div>
+
+          <!-- Score / VS -->
+          <div class="match-center">
+            {% if match.status == 'validated' %}
+            <div class="match-score-final">
+              <span class="match-score-home {% if match.home_score > match.away_score %}score-win{% elif match.home_score < match.away_score %}score-loss{% else %}score-draw{% endif %}">
+                {{ match.home_score }}
+              </span>
+              <span class="match-score-sep">—</span>
+              <span class="match-score-away {% if match.away_score > match.home_score %}score-win{% elif match.away_score < match.home_score %}score-loss{% else %}score-draw{% endif %}">
+                {{ match.away_score }}
+              </span>
+            </div>
+            {% else %}
+            <div class="match-vs">VS</div>
+            {% endif %}
+            <div class="match-status-tag {{ match.get_status_badge_class }}">
+              {{ match.get_status_display }}
+            </div>
+          </div>
+
+          <!-- Away team -->
+          <div class="match-team match-team-away {% if match.status == 'validated' and match.away_score > match.home_score %}team-winner{% endif %}">
+            <span class="match-team-player">{{ match.away_participant.user.username }}</span>
+            <span class="match-team-name">{{ match.away_participant.team_name }}</span>
+          </div>
+        </div>
+
+        <!-- Rejection notice -->
+        {% if match.status == 'rejected' %}
+        {% with result=match.result_or_none %}
+        <div class="match-rejection-notice">
+          <i class="fas fa-exclamation-triangle"></i>
+          Résultat refusé.
+          {% if result and result.rejection_reason %}
+          Motif : <em>{{ result.rejection_reason }}</em>
+          {% endif %}
+        </div>
+        {% endwith %}
+        {% endif %}
+
+        <!-- Submit button (for participants, pending or rejected matches) -->
+        {% if not user.is_staff %}
+        {% if match.status == 'pending' or match.status == 'rejected' %}
+        {% if match.home_participant == user_participant or match.away_participant == user_participant %}
+        <div class="match-submit-action">
+          <a href="{% url 'leagues:match_submit_result' league.pk match.pk %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-upload"></i>
+            {% if match.status == 'rejected' %}Resoumettre{% else %}Soumettre le résultat{% endif %}
+          </a>
+        </div>
+        {% endif %}
+        {% endif %}
+        {% endif %}
+
+        <!-- Submitted result preview (for the submitting player) -->
+        {% if match.status == 'submitted' %}
+        {% with result=match.result_or_none %}
+        {% if result %}
+        <div class="match-pending-notice">
+          <i class="fas fa-clock"></i>
+          Résultat soumis ({{ result.home_score }}–{{ result.away_score }}) · En attente de validation
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% endif %}
+
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+      <i class="fas fa-futbol"></i>
+      <p>Le calendrier sera généré au démarrage de la ligue.</p>
+      {% if user.is_staff and league.is_setup and participants|length >= 2 %}
+      <form method="post" action="{% url 'leagues:league_start' league.pk %}" class="mt-3"
+            onsubmit="return confirm('Démarrer la ligue ?')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-play"></i> Démarrer la ligue
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── TAB: Participants ─────────────────────────────────── -->
+  <div class="tab-panel" id="tab-participants">
+
+    <!-- Add participant form (admin, setup only) -->
+    {% if user.is_staff and league.is_setup and add_form %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <h3><i class="fas fa-user-plus"></i> Ajouter un participant</h3>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'leagues:league_add_participant' league.pk %}">
+          {% csrf_token %}
+          <div class="add-participant-row">
+            <div class="form-group">
+              <label class="form-label">{{ add_form.user.label }}</label>
+              {{ add_form.user }}
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ add_form.team_name.label }}</label>
+              {{ add_form.team_name }}
+            </div>
+            <div class="form-group form-group-btn">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Ajouter
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if league.is_active or league.is_closed %}
+    <div class="alert alert-warning">
+      <i class="fas fa-lock"></i>
+      La ligue est démarrée. Les participants et les équipes sont verrouillés.
+    </div>
+    {% endif %}
+
+    <!-- Participants list -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-users"></i> Participants ({{ participants|length }})</h3>
+      </div>
+      <div class="card-body p-0">
+        {% if participants %}
+        <div class="participants-list">
+          {% for participant in participants %}
+          <div class="participant-row">
+            <img src="{{ participant.user.profile.avatar_url }}" alt="Avatar" class="participant-avatar">
+            <div class="participant-info">
+              <div class="participant-username">{{ participant.user.username }}</div>
+              <div class="participant-teamname">
+                <i class="fas fa-shield-alt"></i> {{ participant.team_name }}
+              </div>
+            </div>
+            <div class="participant-stats">
+              {% if league.is_active or league.is_closed %}
+              {% with st=participant.standing %}
+              {% if st %}
+              <span class="pstat"><strong>{{ st.points }}</strong> pts</span>
+              <span class="pstat text-success">{{ st.wins }}V</span>
+              <span class="pstat">{{ st.draws }}N</span>
+              <span class="pstat text-error">{{ st.losses }}D</span>
+              {% endif %}
+              {% endwith %}
+              {% endif %}
+            </div>
+            {% if user.is_staff and league.is_setup %}
+            <form method="post" action="{% url 'leagues:league_remove_participant' league.pk participant.pk %}"
+                  onsubmit="return confirm('Retirer {{ participant.user.username }} de la ligue ?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-xs" title="Retirer">
+                <i class="fas fa-user-minus"></i>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="fas fa-users"></i>
+          <p>Aucun participant pour le moment.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: Résultats soumis (admin) ─────────────────────── -->
+  {% if user.is_staff %}
+  <div class="tab-panel" id="tab-results">
+    {% if pending_results %}
+    <div class="results-admin-grid">
+      {% for match in pending_results %}
+      <div class="result-admin-card">
+        <div class="result-admin-header">
+          <span class="result-round-tag">Journée {{ match.round_number }}</span>
+          <span class="badge badge-warning">En attente de validation</span>
+        </div>
+
+        <!-- Teams & Score -->
+        <div class="result-score-display">
+          <div class="result-side result-home">
+            <div class="result-team-name">{{ match.home_participant.team_name }}</div>
+            <div class="result-score-num">{{ match.result.home_score }}</div>
+          </div>
+          <div class="result-dash">—</div>
+          <div class="result-side result-away">
+            <div class="result-score-num">{{ match.result.away_score }}</div>
+            <div class="result-team-name">{{ match.result.away_score }}</div>
+            <div class="result-team-name">{{ match.away_participant.team_name }}</div>
+          </div>
+        </div>
+
+        <!-- Meta -->
+        <div class="result-admin-meta">
+          <i class="fas fa-user"></i>
+          Soumis par <strong>{{ match.result.submitted_by.username }}</strong>
+          le {{ match.result.submitted_at|date:"d/m/Y à H:i" }}
+        </div>
+
+        <!-- Screenshot -->
+        {% if match.result.screenshot %}
+        <div class="result-screenshot-link">
+          <a href="{{ match.result.screenshot.url }}" target="_blank" class="btn btn-outline btn-sm">
+            <i class="fas fa-image"></i> Voir la capture d'écran
+          </a>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="result-admin-actions">
+          <!-- Validate -->
+          <form method="post" action="{% url 'leagues:match_validate' league.pk match.pk %}"
+                onsubmit="return confirm('Valider ce résultat ?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-check"></i> Valider
+            </button>
+          </form>
+
+          <!-- Reject -->
+          <form method="post" action="{% url 'leagues:match_reject' league.pk match.pk %}"
+                class="reject-form-inline"
+                onsubmit="return this.querySelector('input[name=rejection_reason]').value.trim() !== '' || (alert('Veuillez indiquer le motif du refus.'), false)">
+            {% csrf_token %}
+            <div class="reject-inline-group">
+              <input type="text" name="rejection_reason" class="form-control"
+                     placeholder="Motif du refus..." maxlength="500">
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-times"></i> Refuser
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fas fa-clipboard-check"></i>
+      <p>Aucun résultat en attente de validation.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── TAB: Journal (admin) ──────────────────────────────── -->
+  <div class="tab-panel" id="tab-logs">
+    {% if logs %}
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-history"></i> Journal des activités</h3>
+        <span class="text-secondary text-sm">{{ logs|length }} entrée(s)</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="log-timeline">
+          {% for log in logs %}
+          <div class="log-entry action-{{ log.action }}">
+            <div class="log-icon">
+              <i class="fas {{ log.get_icon }}"></i>
+            </div>
+            <div class="log-content">
+              <div class="log-description">{{ log.description }}</div>
+              <div class="log-meta">
+                {% if log.performed_by %}
+                <span class="log-user"><i class="fas fa-user"></i> {{ log.performed_by.username }}</span>
+                <span class="log-sep">·</span>
+                {% endif %}
+                <span class="log-date">{{ log.created_at|date:"d/m/Y à H:i" }}</span>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fas fa-history"></i>
+      <p>Aucune activité enregistrée.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {% endif %}
+
+  <!-- ── TAB: Règlement ────────────────────────────────────── -->
+  {% if league.rules %}
+  <div class="tab-panel" id="tab-rules">
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-book"></i> Règlement de la ligue</h3>
+      </div>
+      <div class="card-body">
+        <div class="rules-content">{{ league.rules|linebreaks }}</div>
+        <div class="rules-default-box">
+          <h4>Règles de scoring automatique</h4>
+          <ul>
+            <li><i class="fas fa-check-circle text-success"></i> Victoire = <strong>3 points</strong></li>
+            <li><i class="fas fa-minus-circle text-warning"></i> Match nul = <strong>1 point</strong></li>
+            <li><i class="fas fa-times-circle text-error"></i> Défaite = <strong>0 point</strong></li>
+          </ul>
+          <p>En cas d'égalité de points, le département est effectué par : différence de buts, puis buts marqués.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const tabs = document.querySelectorAll('.tab-btn');
+  const panels = document.querySelectorAll('.tab-panel');
+
+  function activateTab(tabName) {
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+    panels.forEach(p => {
+      p.classList.toggle('active', p.id === 'tab-' + tabName);
+    });
+  }
+
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      activateTab(btn.dataset.tab);
+      history.replaceState(null, '', '?tab=' + btn.dataset.tab);
+    });
+  });
+
+  // Activate from URL param or default to standings
+  const param = new URLSearchParams(window.location.search).get('tab');
+  const validTabs = Array.from(tabs).map(t => t.dataset.tab);
+  activateTab(validTabs.includes(param) ? param : (validTabs[0] || 'standings'));
+})();
+</script>
+{% endblock %}

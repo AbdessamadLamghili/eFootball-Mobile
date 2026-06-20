@@ -125,6 +125,28 @@ class PasswordResetCodeForm(forms.Form):
         return code
 
 
+class EmailVerifyCodeForm(forms.Form):
+    code = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '123456',
+            'maxlength': '6',
+            'pattern': r'\d{6}',
+            'autocomplete': 'one-time-code',
+            'style': 'font-size:1.6rem;letter-spacing:10px;text-align:center;',
+        }),
+        label='Code de vérification',
+        min_length=6,
+        max_length=6,
+    )
+
+    def clean_code(self):
+        code = self.cleaned_data.get('code', '').strip()
+        if not code.isdigit():
+            raise ValidationError('Le code doit contenir uniquement des chiffres.')
+        return code
+
+
 class PasswordResetConfirmForm(forms.Form):
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Nouveau mot de passe'}),

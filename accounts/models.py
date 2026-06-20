@@ -38,6 +38,7 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_email_verified', True)
+        extra_fields.setdefault('is_email_confirmed', True)
         return self.create_user(email, username, password, **extra_fields)
 
 
@@ -49,6 +50,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_email_verified = models.BooleanField(default=False)
+    is_email_confirmed = models.BooleanField(default=False)
     is_suspended = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
     last_login = models.DateTimeField(null=True, blank=True)
@@ -324,6 +326,35 @@ class PasswordResetCode(models.Model):
 
     def __str__(self):
         return f"Code reset pour {self.user.username}"
+
+
+class EmailVerificationCode(models.Model):
+    MAX_ATTEMPTS = 5
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='email_verify_codes')
+    code = models.CharField(max_length=6)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = 'Code vérification email'
+        ordering = ['-created_at']
+
+    def is_valid(self):
+        return (
+            not self.is_used
+            and self.attempts < self.MAX_ATTEMPTS
+            and timezone.now() <= self.expires_at
+        )
+
+    def increment_attempts(self):
+        self.attempts += 1
+        self.save(update_fields=['attempts'])
+
+    def __str__(self):
+        return f"Code vérification email pour {self.user.username}"
 
 
 class DailyReward(models.Model):

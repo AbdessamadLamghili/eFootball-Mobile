@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Créer une ligue — eFootball Rewards{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/leagues.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <div class="form-page-header">
+    <a href="{% url 'leagues:league_list' %}" class="btn btn-outline btn-sm">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+    <h1><i class="fas fa-plus-circle"></i> Créer une ligue</h1>
+  </div>
+
+  <div class="card form-card">
+    <div class="card-header">
+      <h3><i class="fas fa-trophy"></i> Informations de la ligue</h3>
+    </div>
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label">{{ form.name.label }} <span class="required">*</span></label>
+          {{ form.name }}
+          {% if form.name.errors %}
+          <div class="form-error">{{ form.name.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ form.season.label }}</label>
+          {{ form.season }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ form.description.label }}</label>
+          {{ form.description }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ form.rules.label }}</label>
+          {{ form.rules }}
+          <div class="form-hint">
+            <i class="fas fa-info-circle"></i>
+            Victoire = 3 pts · Nul = 1 pt · Défaite = 0 pt (appliqué automatiquement)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ form.logo.label }}</label>
+          {{ form.logo }}
+          <div class="form-hint">Formats acceptés : JPG, PNG, WebP. Taille max : 2 Mo.</div>
+        </div>
+
+        <div class="form-actions">
+          <a href="{% url 'leagues:league_list' %}" class="btn btn-outline">Annuler</a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check"></i> Créer la ligue
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

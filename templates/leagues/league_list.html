@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ligues — eFootball Rewards{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/leagues.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <!-- Header -->
+  <div class="leagues-page-header">
+    <div class="leagues-page-title">
+      <h1><i class="fas fa-trophy"></i> Ligues</h1>
+      <p class="text-secondary">Championnats eFootball en round-robin</p>
+    </div>
+    {% if user.is_staff %}
+    <a href="{% url 'leagues:league_create' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Créer une ligue
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Stats bar (admin only) -->
+  {% if user.is_staff %}
+  <div class="leagues-stats-bar">
+    <div class="leagues-stat">
+      <span class="leagues-stat-value">{{ setup_count }}</span>
+      <span class="leagues-stat-label"><i class="fas fa-cog"></i> Configuration</span>
+    </div>
+    <div class="leagues-stat">
+      <span class="leagues-stat-value text-success">{{ active_count }}</span>
+      <span class="leagues-stat-label"><i class="fas fa-play"></i> En cours</span>
+    </div>
+    <div class="leagues-stat">
+      <span class="leagues-stat-value text-muted">{{ closed_count }}</span>
+      <span class="leagues-stat-label"><i class="fas fa-flag-checkered"></i> Terminées</span>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- League grid -->
+  {% if leagues %}
+  <div class="leagues-grid">
+    {% for league in leagues %}
+    <a href="{% url 'leagues:league_detail' league.pk %}" class="league-card status-{{ league.status }}">
+      <div class="league-card-header">
+        {% if league.logo %}
+        <img src="{{ league.logo.url }}" alt="Logo" class="league-card-logo">
+        {% else %}
+        <div class="league-card-icon">
+          <i class="fas fa-trophy"></i>
+        </div>
+        {% endif %}
+        <div class="league-card-badges">
+          <span class="league-status-badge badge-{{ league.status }}">
+            {% if league.status == 'setup' %}<i class="fas fa-cog"></i>
+            {% elif league.status == 'active' %}<i class="fas fa-play-circle"></i>
+            {% else %}<i class="fas fa-flag-checkered"></i>{% endif %}
+            {{ league.get_status_display }}
+          </span>
+          {% if league.pk in user_league_ids %}
+          <span class="league-my-badge"><i class="fas fa-user-check"></i> Ma ligue</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="league-card-body">
+        <h3 class="league-card-name">{{ league.name }}</h3>
+        {% if league.season %}
+        <div class="league-card-season"><i class="fas fa-calendar-alt"></i> {{ league.season }}</div>
+        {% endif %}
+        {% if league.description %}
+        <p class="league-card-desc">{{ league.description|truncatechars:80 }}</p>
+        {% endif %}
+        <div class="league-card-footer">
+          <span><i class="fas fa-users"></i> {{ league.participants.count }} participant(s)</span>
+          {% if league.is_closed and league.champion %}
+          <span class="league-champion-tag"><i class="fas fa-crown"></i> {{ league.champion.username }}</span>
+          {% endif %}
+        </div>
+        {% if league.participants.count > 0 %}
+        <div class="league-card-players">
+          {% for p in league.participants.all|slice:":5" %}
+          <span class="league-player-chip">{{ p.user.username }}</span>
+          {% endfor %}
+          {% if league.participants.count > 5 %}
+          <span class="league-player-chip league-player-more">+{{ league.participants.count|add:"-5" }}</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state-large">
+    <div class="empty-state-icon"><i class="fas fa-trophy"></i></div>
+    <h2>Aucune ligue pour le moment</h2>
+    {% if user.is_staff %}
+    <p>Créez la première ligue pour commencer.</p>
+    <a href="{% url 'leagues:league_create' %}" class="btn btn-primary mt-3">
+      <i class="fas fa-plus"></i> Créer une ligue
+    </a>
+    {% else %}
+    <p>Aucune ligue disponible pour le moment.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

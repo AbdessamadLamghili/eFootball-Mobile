@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Soumettre un résultat — {{ league.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/leagues.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <div class="form-page-header">
+    <a href="{% url 'leagues:league_detail' league.pk %}" class="btn btn-outline btn-sm">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+    <h1><i class="fas fa-upload"></i> Soumettre un résultat</h1>
+  </div>
+
+  <!-- Match info banner -->
+  <div class="match-submit-banner">
+    <div class="submit-league-name">
+      <i class="fas fa-trophy"></i> {{ league.name }}
+    </div>
+    <div class="submit-round">Journée {{ match.round_number }}</div>
+  </div>
+
+  <div class="match-submit-teams">
+    <div class="submit-team home">
+      <div class="submit-team-name">{{ match.home_participant.team_name }}</div>
+      <div class="submit-team-player">
+        <i class="fas fa-user"></i> {{ match.home_participant.user.username }}
+      </div>
+      <div class="submit-team-label">Domicile</div>
+    </div>
+    <div class="submit-vs">VS</div>
+    <div class="submit-team away">
+      <div class="submit-team-label">Extérieur</div>
+      <div class="submit-team-name">{{ match.away_participant.team_name }}</div>
+      <div class="submit-team-player">
+        <i class="fas fa-user"></i> {{ match.away_participant.user.username }}
+      </div>
+    </div>
+  </div>
+
+  {% if match.status == 'rejected' %}
+  {% with result=match.result_or_none %}
+  {% if result and result.rejection_reason %}
+  <div class="alert alert-error">
+    <i class="fas fa-times-circle"></i>
+    <strong>Résultat précédent refusé.</strong> Motif : {{ result.rejection_reason }}
+  </div>
+  {% endif %}
+  {% endwith %}
+  {% endif %}
+
+  <div class="card form-card">
+    <div class="card-header">
+      <h3><i class="fas fa-edit"></i> Saisir le score</h3>
+    </div>
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Score inputs -->
+        <div class="score-form-row">
+          <div class="score-form-team">
+            <label class="score-team-label">{{ match.home_participant.team_name }}</label>
+            {{ form.home_score }}
+          </div>
+          <div class="score-form-sep">—</div>
+          <div class="score-form-team">
+            {{ form.away_score }}
+            <label class="score-team-label">{{ match.away_participant.team_name }}</label>
+          </div>
+        </div>
+        {% if form.home_score.errors %}
+        <div class="form-error text-center">{{ form.home_score.errors.0 }}</div>
+        {% endif %}
+        {% if form.away_score.errors %}
+        <div class="form-error text-center">{{ form.away_score.errors.0 }}</div>
+        {% endif %}
+
+        <!-- Screenshot -->
+        <div class="form-group mt-4">
+          <label class="form-label">
+            {{ form.screenshot.label }} <span class="required">*</span>
+          </label>
+          {{ form.screenshot }}
+          {% if form.screenshot.errors %}
+          <div class="form-error">{{ form.screenshot.errors.0 }}</div>
+          {% endif %}
+          <div class="form-hint">
+            <i class="fas fa-info-circle"></i>
+            Joignez une capture d'écran du résultat final du match.
+            L'administrateur vérifiera avant de valider.
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <a href="{% url 'leagues:league_detail' league.pk %}" class="btn btn-outline">Annuler</a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-paper-plane"></i> Soumettre le résultat
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

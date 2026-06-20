@@ -11,12 +11,12 @@ from django.views import View
 from django_ratelimit.decorators import ratelimit
 from datetime import timedelta, date
 
-from .models import User, UserProfile, EmailVerificationToken, PasswordResetToken, PasswordResetCode, DailyReward, PointTransaction, AccountVerificationRequest
+from .models import User, UserProfile, EmailVerificationToken, PasswordResetToken, PasswordResetCode, EmailVerificationCode, DailyReward, PointTransaction, AccountVerificationRequest
 from .forms import (
     RegisterForm, LoginForm, PasswordResetRequestForm,
-    PasswordResetCodeForm, PasswordResetConfirmForm, ProfileUpdateForm, AvatarUpdateForm,
+    PasswordResetCodeForm, PasswordResetConfirmForm, EmailVerifyCodeForm, ProfileUpdateForm, AvatarUpdateForm,
 )
-from .emails import send_password_reset_code_email
+from .emails import send_password_reset_code_email, send_email_verification_code_email
 from notifications.models import Notification
 from logs.models import ActivityLog
 from django.conf import settings
@@ -73,14 +73,32 @@ class RegisterView(View):
                 Notification.objects.create(
                     user=user,
                     title='Bienvenue sur eFootball Rewards !',
-                    message="Votre compte a été créé. Vérifiez votre email pour l'activer.",
+                    message="Votre compte a été créé. Confirmez votre email avec le code envoyé.",
                     notification_type=Notification.TYPE_INFO,
                 )
             except Exception:
                 pass
 
-            messages.success(request, 'Compte créé ! Vérifiez votre email pour l\'activer.')
-            return redirect('accounts:login')
+            # Send email verification code (skipped when EMAIL_VERIFICATION_REQUIRED=False)
+            if settings.EMAIL_VERIFICATION_REQUIRED:
+                EmailVerificationCode.objects.filter(user=user, is_used=False).update(is_used=True)
+                code_obj = EmailVerificationCode.objects.create(
+                    user=user,
+                    code=str(random.randint(100000, 999999)),
+                    expires_at=timezone.now() + timedelta(minutes=15),
+                )
+                try:
+                    send_email_verification_code_email(user, code_obj.code)
+                except Exception:
+                    pass
+                request.session['email_verify_code_id'] = code_obj.pk
+                messages.info(request, 'Un code de vérification a été envoyé à votre email. Valable 15 minutes.')
+                return redirect('accounts:email_verify')
+            else:
+                user.is_email_confirmed = True
+                user.save(update_fields=['is_email_confirmed'])
+                messages.success(request, 'Compte créé ! Vous pouvez maintenant vous connecter.')
+                return redirect('accounts:login')
         return render(request, self.template_name, {'form': form})
 
 
@@ -100,6 +118,22 @@ class LoginView(View):
             if user.is_suspended:
                 messages.error(request, 'Votre compte a été suspendu. Contactez le support.')
                 return render(request, self.template_name, {'form': form})
+            if settings.EMAIL_VERIFICATION_REQUIRED and not user.is_email_confirmed:
+                # Block login — send a fresh code and redirect to verification
+                EmailVerificationCode.objects.filter(user=user, is_used=False).update(is_used=True)
+                code_obj = EmailVerificationCode.objects.create(
+                    user=user,
+                    code=str(random.randint(100000, 999999)),
+                    expires_at=timezone.now() + timedelta(minutes=15),
+                )
+                try:
+                    send_email_verification_code_email(user, code_obj.code)
+                except Exception:
+                    pass
+                request.session['email_verify_code_id'] = code_obj.pk
+                request.session['unconfirmed_login_user_id'] = str(user.pk)
+                messages.warning(request, 'Veuillez confirmer votre adresse email. Un nouveau code a été envoyé.')
+                return redirect('accounts:email_verify')
             login(request, user)
             if not form.cleaned_data.get('remember_me'):
                 request.session.set_expiry(0)
@@ -172,6 +206,136 @@ def verify_email(request, token):
 
     messages.success(request, 'Email vérifié ! Votre compte est maintenant actif.')
     return redirect('accounts:login')
+
+
+class EmailVerifyCodeView(View):
+    template_name = 'accounts/email_verify.html'
+
+    def _get_or_redirect(self, request):
+        """Return (code_obj, None) or (None, redirect_response)."""
+        code_id = request.session.get('email_verify_code_id')
+        if not code_id:
+            return None, redirect('accounts:login')
+        try:
+            return EmailVerificationCode.objects.select_related('user').get(pk=code_id), None
+        except EmailVerificationCode.DoesNotExist:
+            request.session.pop('email_verify_code_id', None)
+            request.session.pop('unconfirmed_login_user_id', None)
+            return None, redirect('accounts:login')
+
+    def get(self, request):
+        code_obj, redir = self._get_or_redirect(request)
+        if redir:
+            return redir
+        return render(request, self.template_name, {
+            'form': EmailVerifyCodeForm(),
+            'masked_email': _mask_email(code_obj.user.email),
+        })
+
+    @method_decorator(ratelimit(key='ip', rate='10/h', block=True))
+    def post(self, request):
+        code_obj, redir = self._get_or_redirect(request)
+        if redir:
+            return redir
+
+        form = EmailVerifyCodeForm(request.POST)
+        masked_email = _mask_email(code_obj.user.email)
+
+        if not form.is_valid():
+            return render(request, self.template_name, {'form': form, 'masked_email': masked_email})
+
+        entered_code = form.cleaned_data['code']
+
+        if not code_obj.is_valid():
+            messages.error(request, 'Ce code a expiré ou n\'est plus valide. Demandez un nouveau code.')
+            return render(request, self.template_name, {
+                'form': form,
+                'masked_email': masked_email,
+                'show_resend': True,
+            })
+
+        if entered_code != code_obj.code:
+            code_obj.increment_attempts()
+            remaining = max(0, EmailVerificationCode.MAX_ATTEMPTS - code_obj.attempts)
+            if remaining == 0:
+                messages.error(request, 'Trop de tentatives incorrectes. Demandez un nouveau code.')
+                return render(request, self.template_name, {
+                    'form': EmailVerifyCodeForm(),
+                    'masked_email': masked_email,
+                    'show_resend': True,
+                })
+            messages.error(request, f'Code incorrect. {remaining} tentative(s) restante(s).')
+            return render(request, self.template_name, {'form': form, 'masked_email': masked_email})
+
+        # Code correct — confirm email
+        user = code_obj.user
+        user.is_email_confirmed = True
+        user.save(update_fields=['is_email_confirmed'])
+        code_obj.is_used = True
+        code_obj.save(update_fields=['is_used'])
+
+        request.session.pop('email_verify_code_id', None)
+        unconfirmed_user_id = request.session.pop('unconfirmed_login_user_id', None)
+
+        try:
+            Notification.objects.create(
+                user=user,
+                title='Email confirmé !',
+                message='Votre adresse email a été confirmée. Votre compte est en attente de validation par un administrateur.',
+                notification_type=Notification.TYPE_SUCCESS,
+            )
+        except Exception:
+            pass
+
+        if unconfirmed_user_id:
+            # Came from blocked login — log the user in now
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            messages.success(request, 'Email confirmé ! Bienvenue.')
+            return redirect(reverse('dashboard:user_dashboard'))
+
+        messages.success(request, 'Email confirmé ! Vous pouvez maintenant vous connecter.')
+        return redirect('accounts:login')
+
+
+class EmailVerifyResendView(View):
+
+    @method_decorator(ratelimit(key='ip', rate='3/h', block=True))
+    def post(self, request):
+        user = None
+
+        code_id = request.session.get('email_verify_code_id')
+        if code_id:
+            try:
+                old_code = EmailVerificationCode.objects.select_related('user').get(pk=code_id)
+                user = old_code.user
+            except EmailVerificationCode.DoesNotExist:
+                pass
+
+        if not user:
+            user_id = request.session.get('unconfirmed_login_user_id')
+            if user_id:
+                try:
+                    user = User.objects.get(pk=user_id)
+                except User.DoesNotExist:
+                    pass
+
+        if not user:
+            messages.error(request, 'Session expirée. Recommencez.')
+            return redirect('accounts:login')
+
+        EmailVerificationCode.objects.filter(user=user, is_used=False).update(is_used=True)
+        code_obj = EmailVerificationCode.objects.create(
+            user=user,
+            code=str(random.randint(100000, 999999)),
+            expires_at=timezone.now() + timedelta(minutes=15),
+        )
+        try:
+            send_email_verification_code_email(user, code_obj.code)
+        except Exception:
+            pass
+        request.session['email_verify_code_id'] = code_obj.pk
+        messages.success(request, 'Un nouveau code a été envoyé à votre email. Valable 15 minutes.')
+        return redirect('accounts:email_verify')
 
 
 class PasswordResetRequestView(View):
@@ -413,6 +577,17 @@ def _get_client_ip(request):
     if x_forwarded_for:
         return x_forwarded_for.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR', '')
+
+
+def _mask_email(email):
+    parts = email.split('@')
+    if len(parts) != 2:
+        return email
+    local, domain = parts
+    masked_local = local[0] + '***' if len(local) > 1 else '***'
+    domain_parts = domain.split('.')
+    masked_domain = (domain_parts[0][0] + '***.' + '.'.join(domain_parts[1:])) if len(domain_parts) > 1 else domain
+    return f'{masked_local}@{masked_domain}'
 
 
 def _award_invitation_points(user):

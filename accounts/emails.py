@@ -44,6 +44,19 @@ def send_password_reset_code_email(user, code):
     )
 
 
+def send_email_verification_code_email(user, code):
+    _send_email(
+        subject=f'[{settings.SITE_NAME}] Vérifiez votre email : {code}',
+        template_name='emails/email_verification_code.html',
+        context={
+            'user': user,
+            'code': code,
+            'site_name': settings.SITE_NAME,
+        },
+        recipient_email=user.email,
+    )
+
+
 def send_reward_accepted_email(user, redemption):
     _send_email(
         subject=f'[{settings.SITE_NAME}] Votre demande de récompense a été acceptée',

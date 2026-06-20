@@ -33,6 +33,9 @@
             <a href="{% url 'missions:list' %}" class="nav-link {% if 'missions' in request.resolver_match.namespace %}active{% endif %}">
                 <i class="fas fa-tasks"></i> Missions
             </a>
+            <a href="{% url 'leagues:league_list' %}" class="nav-link {% if 'leagues' in request.resolver_match.namespace %}active{% endif %}">
+                <i class="fas fa-trophy"></i> Ligues
+            </a>
         </div>
 
         <div class="navbar-right">
