@@ -232,3 +232,11 @@ RATELIMIT_FAIL_OPEN = True
 # CORS
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000', cast=Csv())
 CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in os.environ.get(
+        "CSRF_TRUSTED_ORIGINS",
+        "https://efootball-mobile-production.up.railway.app",
+    ).split(",") if o.strip()
+]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
