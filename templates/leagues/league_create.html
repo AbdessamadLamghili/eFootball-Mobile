@@ -57,6 +57,17 @@
           <div class="form-hint">Formats acceptés : JPG, PNG, WebP. Taille max : 2 Mo.</div>
         </div>
 
+        <div class="form-group form-group-check">
+          <label class="form-check-label">
+            {{ form.two_legs }}
+            <span>{{ form.two_legs.label }}</span>
+          </label>
+          <div class="form-hint">
+            <i class="fas fa-sync-alt"></i>
+            Chaque équipe joue à domicile ET à l'extérieur contre chaque adversaire (2× plus de matchs).
+          </div>
+        </div>
+
         <div class="form-actions">
           <a href="{% url 'leagues:league_list' %}" class="btn btn-outline">Annuler</a>
           <button type="submit" class="btn btn-primary">

@@ -914,3 +914,144 @@ textarea.form-control { resize: vertical; }
   .standings-table th, .standings-table td { padding: 8px 4px; font-size: .78rem; }
   .match-score-final { font-size: 1.1rem; }
 }
+
+/* ── Forme (5 derniers résultats) ──────────────────────────── */
+.col-form { min-width: 90px; }
+.form-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 800;
+  margin-right: 2px;
+  letter-spacing: 0;
+}
+.form-W { background: var(--success); color: #fff; }
+.form-D { background: #6b7280; color: #fff; }
+.form-L { background: var(--error); color: #fff; }
+
+/* ── Prochain match ─────────────────────────────────────────── */
+.next-match-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(135deg, #1e293b 0%, #1d2a40 100%);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.next-match-banner.next-match-rejected {
+  border-color: var(--error);
+  background: linear-gradient(135deg, #2d1b1b 0%, #3a1f1f 100%);
+}
+.next-match-label {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--primary-light);
+  white-space: nowrap;
+}
+.next-match-banner.next-match-rejected .next-match-label { color: #fca5a5; }
+.next-match-teams {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+.next-match-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.next-match-side-right { align-items: flex-end; }
+.next-match-me .next-match-team { color: var(--primary-light); font-weight: 700; }
+.next-match-team {
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.next-match-player {
+  font-size: .75rem;
+  color: var(--text-secondary);
+}
+.next-match-vs {
+  font-size: .85rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  padding: 0 4px;
+}
+.next-match-btn { margin-left: auto; white-space: nowrap; }
+
+/* ── Progression des matchs ─────────────────────────────────── */
+.matches-progress-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.matches-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .82rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.matches-progress-fraction {
+  font-weight: 700;
+  color: var(--text);
+  font-size: .9rem;
+}
+.matches-progress-track {
+  height: 6px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.matches-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary) 0%, #818cf8 100%);
+  border-radius: 99px;
+  transition: width .4s ease;
+}
+
+/* ── Badge aller-retour ─────────────────────────────────────── */
+.league-two-legs-tag {
+  font-size: .72rem;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, .12);
+  border: 1px solid rgba(56, 189, 248, .25);
+  border-radius: 99px;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Checkbox form-group ────────────────────────────────────── */
+.form-group-check {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.form-check-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}

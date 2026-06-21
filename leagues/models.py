@@ -28,6 +28,7 @@ class League(models.Model):
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default=STATUS_SETUP, verbose_name='Statut'
     )
+    two_legs = models.BooleanField(default=False, verbose_name='Aller-retour (2 manches)')
     started_at = models.DateTimeField(null=True, blank=True, verbose_name='Démarrée le')
     ended_at = models.DateTimeField(null=True, blank=True, verbose_name='Terminée le')
     champion = models.ForeignKey(

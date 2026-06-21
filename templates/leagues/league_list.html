@@ -76,6 +76,9 @@
         {% endif %}
         <div class="league-card-footer">
           <span><i class="fas fa-users"></i> {{ league.participants.count }} participant(s)</span>
+          {% if league.two_legs %}
+          <span class="league-two-legs-tag"><i class="fas fa-sync-alt"></i> Aller-retour</span>
+          {% endif %}
           {% if league.is_closed and league.champion %}
           <span class="league-champion-tag"><i class="fas fa-crown"></i> {{ league.champion.username }}</span>
           {% endif %}

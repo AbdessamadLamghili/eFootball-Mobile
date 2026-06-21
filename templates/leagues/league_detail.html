@@ -31,6 +31,9 @@
           {% if league.season %}
           <span class="league-detail-season"><i class="fas fa-calendar-alt"></i> {{ league.season }}</span>
           {% endif %}
+          {% if league.two_legs %}
+          <span class="league-detail-season"><i class="fas fa-sync-alt"></i> Aller-retour</span>
+          {% endif %}
           <span class="text-secondary"><i class="fas fa-users"></i> {{ participants|length }} participant(s)</span>
         </div>
         <h1 class="league-detail-name">{{ league.name }}</h1>
@@ -80,6 +83,36 @@
       <div class="champion-name">{{ league.champion.username }}</div>
     </div>
     <div class="champion-confetti">🏆</div>
+  </div>
+  {% endif %}
+
+  <!-- ── Mon prochain match ────────────────────────────────── -->
+  {% if next_match %}
+  <div class="next-match-banner {% if next_match.status == 'rejected' %}next-match-rejected{% endif %}">
+    <div class="next-match-label">
+      {% if next_match.status == 'rejected' %}
+      <i class="fas fa-exclamation-triangle"></i> Résultat refusé — à resoumettre
+      {% else %}
+      <i class="fas fa-futbol"></i> Votre prochain match — Journée {{ next_match.round_number }}
+      {% endif %}
+    </div>
+    <div class="next-match-teams">
+      <div class="next-match-side {% if next_match.home_participant == user_participant %}next-match-me{% endif %}">
+        <span class="next-match-team">{{ next_match.home_participant.team_name }}</span>
+        <span class="next-match-player">{{ next_match.home_participant.user.username }}</span>
+      </div>
+      <span class="next-match-vs">VS</span>
+      <div class="next-match-side next-match-side-right {% if next_match.away_participant == user_participant %}next-match-me{% endif %}">
+        <span class="next-match-team">{{ next_match.away_participant.team_name }}</span>
+        <span class="next-match-player">{{ next_match.away_participant.user.username }}</span>
+      </div>
+    </div>
+    {% if not user.is_staff %}
+    <a href="{% url 'leagues:match_submit_result' league.pk next_match.pk %}" class="btn btn-primary btn-sm next-match-btn">
+      <i class="fas fa-upload"></i>
+      {% if next_match.status == 'rejected' %}Resoumettre{% else %}Soumettre le résultat{% endif %}
+    </a>
+    {% endif %}
   </div>
   {% endif %}
 
@@ -147,6 +180,9 @@
                 <th title="Buts contre">BC</th>
                 <th title="Différence de buts">DB</th>
                 <th title="Points" class="col-pts">Pts</th>
+                {% if league.is_active or league.is_closed %}
+                <th title="5 derniers matchs" class="col-form">Forme</th>
+                {% endif %}
               </tr>
             </thead>
             <tbody>
@@ -179,6 +215,13 @@
                   {% if standing.goal_difference > 0 %}+{% endif %}{{ standing.goal_difference }}
                 </td>
                 <td class="col-pts"><strong>{{ standing.points }}</strong></td>
+                {% if league.is_active or league.is_closed %}
+                <td class="col-form">
+                  {% for r in standing.form %}
+                  <span class="form-dot form-{{ r }}">{{ r }}</span>
+                  {% endfor %}
+                </td>
+                {% endif %}
               </tr>
               {% endfor %}
             </tbody>
@@ -198,6 +241,18 @@
 
   <!-- ── TAB: Matchs ───────────────────────────────────────── -->
   <div class="tab-panel" id="tab-matches">
+    {% if league.is_active and total_matches > 0 %}
+    <div class="matches-progress-bar">
+      <div class="matches-progress-info">
+        <span><i class="fas fa-check-circle text-success"></i> {{ validated_count }} validé(s)</span>
+        <span class="matches-progress-fraction">{{ validated_count }} / {{ total_matches }}</span>
+        <span>{{ total_matches }} match(s) total</span>
+      </div>
+      <div class="matches-progress-track">
+        <div class="matches-progress-fill" style="width: {% widthratio validated_count total_matches 100 %}%"></div>
+      </div>
+    </div>
+    {% endif %}
     {% if matches_by_round %}
     {% for round_num, round_matches in matches_by_round.items %}
     <div class="match-round-block">

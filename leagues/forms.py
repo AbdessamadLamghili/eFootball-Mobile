@@ -9,7 +9,7 @@ User = get_user_model()
 class LeagueCreateForm(forms.ModelForm):
     class Meta:
         model = League
-        fields = ['name', 'description', 'season', 'rules', 'logo']
+        fields = ['name', 'description', 'season', 'rules', 'logo', 'two_legs']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',

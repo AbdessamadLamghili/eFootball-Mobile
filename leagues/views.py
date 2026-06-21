@@ -1,11 +1,15 @@
 from functools import wraps
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+
+from notifications.models import Notification
 
 from .forms import AddParticipantForm, LeagueCreateForm, MatchResultForm, RejectResultForm
 from .models import League, LeagueLog, LeagueParticipant, LeagueStanding, Match, MatchResult
@@ -67,18 +71,47 @@ def league_detail(request, pk):
 
     is_participant = league.participants.filter(user=request.user).exists()
 
-    standings = league.get_standings_ordered()
+    # Standings + forme (5 derniers résultats par participant)
+    standings_list = list(league.get_standings_ordered())
+    form_data = {}
+    if league.is_active or league.is_closed:
+        for m in league.matches.filter(status=Match.STATUS_VALIDATED).order_by('id'):
+            h, a = m.home_participant_id, m.away_participant_id
+            if m.home_score > m.away_score:
+                form_data.setdefault(h, []).append('W')
+                form_data.setdefault(a, []).append('L')
+            elif m.home_score < m.away_score:
+                form_data.setdefault(h, []).append('L')
+                form_data.setdefault(a, []).append('W')
+            else:
+                form_data.setdefault(h, []).append('D')
+                form_data.setdefault(a, []).append('D')
+    for s in standings_list:
+        s.form = form_data.get(s.participant_id, [])[-5:]
 
-    matches_by_round = {}
-    for match in league.matches.select_related(
+    matches_qs = league.matches.select_related(
         'home_participant__user', 'away_participant__user'
-    ).prefetch_related('result'):
+    ).prefetch_related('result')
+    matches_by_round = {}
+    for match in matches_qs:
         matches_by_round.setdefault(match.round_number, []).append(match)
     matches_by_round = dict(sorted(matches_by_round.items()))
+
+    total_matches = league.matches.count()
+    validated_count = league.matches.filter(status=Match.STATUS_VALIDATED).count()
 
     participants = league.participants.select_related('user', 'standing').all()
 
     user_participant = participants.filter(user=request.user).first()
+
+    # Prochain match du joueur courant
+    next_match = None
+    if user_participant:
+        next_match = league.matches.filter(
+            status__in=[Match.STATUS_PENDING, Match.STATUS_REJECTED],
+        ).filter(
+            Q(home_participant=user_participant) | Q(away_participant=user_participant)
+        ).select_related('home_participant__user', 'away_participant__user').first()
 
     pending_results = None
     if request.user.is_staff:
@@ -96,11 +129,14 @@ def league_detail(request, pk):
 
     context = {
         'league': league,
-        'standings': standings,
+        'standings': standings_list,
         'matches_by_round': matches_by_round,
+        'total_matches': total_matches,
+        'validated_count': validated_count,
         'participants': participants,
         'is_participant': is_participant,
         'user_participant': user_participant,
+        'next_match': next_match,
         'pending_results': pending_results,
         'pending_count': len(pending_results) if pending_results else 0,
         'add_form': add_form,
@@ -180,7 +216,7 @@ def league_start(request, pk):
         messages.error(request, "Il faut au moins 2 participants pour démarrer la ligue.")
         return redirect('leagues:league_detail', pk=pk)
 
-    rounds = generate_round_robin(participants)
+    rounds = generate_round_robin(participants, two_legs=league.two_legs)
     for round_num, round_matches in enumerate(rounds, start=1):
         for home, away in round_matches:
             Match.objects.create(
@@ -242,6 +278,7 @@ def match_submit_result(request, pk, match_pk):
                 performed_by=request.user,
             )
             messages.success(request, "Résultat soumis. En attente de validation par l'administrateur.")
+            _notify_staff_result_submitted(match, request.user)
             return redirect('leagues:league_detail', pk=pk)
     else:
         form = MatchResultForm()
@@ -286,6 +323,8 @@ def match_validate(request, pk, match_pk):
     league.refresh_from_db()
     league.check_and_close()
 
+    _notify_result_validated(match, result)
+
     if league.is_closed:
         messages.success(request, "Résultat validé. La ligue est maintenant terminée !")
     else:
@@ -319,6 +358,7 @@ def match_reject(request, pk, match_pk):
             ),
             performed_by=request.user,
         )
+        _notify_result_rejected(match, result, reason)
         messages.warning(request, "Résultat refusé. Le joueur devra soumettre à nouveau.")
     else:
         messages.error(request, "Veuillez indiquer le motif du refus.")
@@ -359,3 +399,62 @@ def _update_standings(match, home_score, away_score):
 
     home_st.save()
     away_st.save()
+
+
+def _notify_staff_result_submitted(match, submitter):
+    User = get_user_model()
+    staff_users = list(User.objects.filter(is_staff=True, is_active=True))
+    if staff_users:
+        Notification.objects.bulk_create([
+            Notification(
+                user=su,
+                title="Résultat soumis",
+                message=(
+                    f"{submitter.username} a soumis un résultat : "
+                    f"{match.home_participant.team_name} vs {match.away_participant.team_name} "
+                    f"— Journée {match.round_number} ({match.league.name})."
+                ),
+                notification_type=Notification.TYPE_WARNING,
+            )
+            for su in staff_users
+        ])
+
+
+def _notify_result_validated(match, result):
+    submitter = result.submitted_by
+    score = f"{result.home_score}–{result.away_score}"
+    Notification.objects.create(
+        user=submitter,
+        title="Résultat validé ✓",
+        message=(
+            f"Résultat validé : {match.home_participant.team_name} {score} "
+            f"{match.away_participant.team_name} (Journée {match.round_number})."
+        ),
+        notification_type=Notification.TYPE_SUCCESS,
+    )
+    home_user = match.home_participant.user
+    away_user = match.away_participant.user
+    opponent = away_user if submitter.pk == home_user.pk else home_user
+    if opponent.pk != submitter.pk:
+        Notification.objects.create(
+            user=opponent,
+            title="Résultat officiel",
+            message=(
+                f"Résultat officiel : {match.home_participant.team_name} {score} "
+                f"{match.away_participant.team_name} (Journée {match.round_number})."
+            ),
+            notification_type=Notification.TYPE_INFO,
+        )
+
+
+def _notify_result_rejected(match, result, reason):
+    Notification.objects.create(
+        user=result.submitted_by,
+        title="Résultat refusé",
+        message=(
+            f"Résultat refusé : {match.home_participant.team_name} vs "
+            f"{match.away_participant.team_name} (Journée {match.round_number}). "
+            f"Motif : {reason}"
+        ),
+        notification_type=Notification.TYPE_ERROR,
+    )
