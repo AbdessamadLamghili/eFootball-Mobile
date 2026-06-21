@@ -109,6 +109,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     default_avatar = models.CharField(max_length=60, blank=True, default='')
+    phone_number = models.CharField(max_length=20, blank=True, verbose_name='Numéro de téléphone')
     points_balance = models.PositiveIntegerField(default=0)
     total_points_earned = models.PositiveIntegerField(default=0)
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default=LEVEL_BRONZE)
@@ -389,9 +390,12 @@ class AccountVerificationRequest(models.Model):
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_requests')
-    verification_code = models.CharField(max_length=6, blank=True)  # admin generates & sends manually
-    entered_code = models.CharField(max_length=6, blank=True)       # user enters this
+    verification_code = models.CharField(max_length=6, blank=True)
+    entered_code = models.CharField(max_length=6, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    method = models.CharField(max_length=20, blank=True)
+    phone_snapshot = models.CharField(max_length=20, blank=True)
+    code_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -406,3 +410,35 @@ class AccountVerificationRequest(models.Model):
     def generate_code(self):
         self.verification_code = str(random.randint(100000, 999999))
         self.save(update_fields=['verification_code'])
+
+
+class VerificationSettings(models.Model):
+    METHOD_PHONE = 'phone'
+    METHOD_ADMIN_CODE = 'admin_code'
+    METHOD_SEND_CODE = 'send_code'
+    METHOD_CHOICES = [
+        ('phone',      'Option 1 — Numéro de téléphone (vérification manuelle)'),
+        ('admin_code', "Option 2 — Code saisi par l'administrateur"),
+        ('send_code',  "Option 3 — Envoi automatique du code à l'utilisateur"),
+    ]
+
+    method = models.CharField(max_length=20, choices=METHOD_CHOICES, default='admin_code',
+                              verbose_name='Méthode de vérification')
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='verification_settings_updates',
+    )
+
+    class Meta:
+        verbose_name = 'Configuration de vérification'
+
+    def __str__(self):
+        return f"Méthode : {self.get_method_display()}"
+
+    @classmethod
+    def get_current(cls):
+        obj, _ = cls.objects.get_or_create(pk=1, defaults={'method': 'admin_code'})
+        return obj

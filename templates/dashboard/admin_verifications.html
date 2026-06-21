@@ -1,109 +1,342 @@
 {% extends 'base.html' %}
 {% block title %}Vérifications de comptes — Admin{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Method selector cards */
+.method-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 32px; }
+.method-card {
+  border: 2px solid var(--border); border-radius: 14px; padding: 20px 16px;
+  text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+  background: var(--surface); position: relative;
+}
+.method-card.active { border-color: var(--primary); background: rgba(99,102,241,.06); }
+.method-card .method-icon { font-size: 1.8rem; margin-bottom: 10px; }
+.method-card .method-num { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-secondary); margin-bottom: 4px; }
+.method-card .method-title { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.method-card .method-desc { font-size: .78rem; color: var(--text-secondary); line-height: 1.4; }
+.method-card .active-check {
+  position: absolute; top: 10px; right: 10px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: .7rem;
+}
+
+/* Verification card */
+.ver-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px; margin-bottom: 16px;
+}
+.ver-card-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.ver-user { display: flex; align-items: center; gap: 12px; }
+.ver-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: rgba(99,102,241,.15); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--primary); font-size: 1.1rem; flex-shrink: 0; }
+.ver-info strong { font-size: 1rem; }
+.ver-info small { display: block; color: var(--text-secondary); font-size: .8rem; }
+.ver-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Code display & input */
+.code-display {
+  background: rgba(99,102,241,.08); border: 1px dashed var(--primary);
+  border-radius: 10px; padding: 14px;
+  text-align: center; margin: 12px 0;
+}
+.code-mono { font-family: monospace; font-size: 2rem; font-weight: 800; letter-spacing: 8px; color: var(--primary-light); }
+.code-label { font-size: .75rem; color: var(--text-secondary); margin-top: 4px; }
+
+.code-match-ok  { color: var(--success); font-size: .82rem; }
+.code-match-bad { color: var(--error);   font-size: .82rem; }
+
+/* Phone display */
+.phone-display {
+  background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.25);
+  border-radius: 10px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 1.1rem; font-weight: 600; color: var(--success);
+  margin: 12px 0;
+}
+
+/* Inline code form */
+.code-input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.code-input-row input[type="text"] { font-family: monospace; font-size: 1.1rem; letter-spacing: 4px; width: 130px; }
+
+/* Action buttons row */
+.ver-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+/* History */
+.history-row { font-size: .85rem; }
+.history-row td { padding: 8px 12px; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-container">
-    <div class="page-header">
-        <div>
-            <h1><i class="fas fa-shield-alt"></i> Vérifications de comptes</h1>
-            <p class="page-subtitle">Validez les demandes de vérification des utilisateurs</p>
-        </div>
-        <a href="{% url 'dashboard:admin_dashboard' %}" class="btn btn-outline btn-sm">
-            <i class="fas fa-arrow-left"></i> Tableau de bord
-        </a>
-    </div>
 
-    <div class="card">
-        <div class="card-body p-0">
-            {% if verifications %}
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Utilisateur</th>
-                            <th>Email</th>
-                            <th>Code à envoyer</th>
-                            <th>Code saisi</th>
-                            <th>Statut</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for ver in verifications %}
-                        <tr>
-                            <td><strong>{{ ver.user.username }}</strong></td>
-                            <td>{{ ver.user.email }}</td>
-                            <td>
-                                {% if ver.verification_code %}
-                                <span style="font-family:monospace;font-size:1.1rem;background:#f3f4f6;padding:4px 8px;border-radius:4px;">
-                                    {{ ver.verification_code }}
-                                </span>
-                                <br><small style="color:#6b7280;">Envoyez ce code à l'utilisateur par email</small>
-                                {% else %}
-                                <span class="text-muted">—</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if ver.entered_code %}
-                                <span style="font-family:monospace;font-size:1.1rem;background:#dcfce7;padding:4px 8px;border-radius:4px;">
-                                    {{ ver.entered_code }}
-                                </span>
-                                {% if ver.verification_code and ver.entered_code == ver.verification_code %}
-                                <br><small style="color:#16a34a;"><i class="fas fa-check"></i> Codes identiques</small>
-                                {% elif ver.verification_code %}
-                                <br><small style="color:#dc2626;"><i class="fas fa-times"></i> Codes différents</small>
-                                {% endif %}
-                                {% else %}
-                                <span class="text-muted">En attente…</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if ver.status == 'pending' %}
-                                <span class="badge badge-warning">En attente</span>
-                                {% elif ver.status == 'code_entered' %}
-                                <span class="badge badge-info">Code soumis</span>
-                                {% elif ver.status == 'verified' %}
-                                <span class="badge badge-success">Vérifié</span>
-                                {% elif ver.status == 'rejected' %}
-                                <span class="badge badge-danger">Refusé</span>
-                                {% endif %}
-                            </td>
-                            <td><small>{{ ver.created_at|date:"d/m/Y H:i" }}</small></td>
-                            <td>
-                                {% if ver.status != 'verified' %}
-                                <form method="post" action="{% url 'dashboard:admin_verification_action' ver.pk %}"
-                                      style="display:inline;" onsubmit="return confirm('Valider ce compte ?')">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="verify">
-                                    <button type="submit" class="btn btn-success btn-sm">
-                                        <i class="fas fa-check"></i> Valider
-                                    </button>
-                                </form>
-                                <form method="post" action="{% url 'dashboard:admin_verification_action' ver.pk %}"
-                                      style="display:inline;" onsubmit="return confirm('Refuser cette demande ?')">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="reject">
-                                    <button type="submit" class="btn btn-danger btn-sm">
-                                        <i class="fas fa-times"></i> Refuser
-                                    </button>
-                                </form>
-                                {% else %}
-                                <span class="text-muted">—</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <i class="fas fa-shield-alt"></i>
-                <p>Aucune demande de vérification en attente.</p>
-            </div>
-            {% endif %}
-        </div>
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1><i class="fas fa-shield-alt"></i> Vérifications de comptes</h1>
+      <p class="page-subtitle">Gérez les demandes de vérification et la méthode active</p>
     </div>
+    <a href="{% url 'dashboard:admin_dashboard' %}" class="btn btn-outline btn-sm">
+      <i class="fas fa-arrow-left"></i> Tableau de bord
+    </a>
+  </div>
+
+  <!-- ── METHOD SELECTOR ────────────────────────── -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h3><i class="fas fa-cog"></i> Méthode de vérification active</h3>
+      {% if vsettings.updated_at %}
+      <small class="text-secondary">Mise à jour le {{ vsettings.updated_at|date:"d/m/Y à H:i" }}{% if vsettings.updated_by %} par {{ vsettings.updated_by.username }}{% endif %}</small>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <div class="method-cards">
+
+        <!-- Option 1: Phone -->
+        <div class="method-card {% if vsettings.method == 'phone' %}active{% endif %}">
+          {% if vsettings.method == 'phone' %}<div class="active-check"><i class="fas fa-check"></i></div>{% endif %}
+          <div class="method-icon">📱</div>
+          <div class="method-num">Option 1</div>
+          <div class="method-title">Numéro de téléphone</div>
+          <div class="method-desc">L'utilisateur fournit son numéro. Vous le contactez manuellement pour vérifier.</div>
+          {% if vsettings.method != 'phone' %}
+          <form method="post" action="{% url 'dashboard:admin_set_verification_method' %}" style="margin-top:12px;">
+            {% csrf_token %}
+            <input type="hidden" name="method" value="phone">
+            <button type="submit" class="btn btn-outline btn-sm" style="width:100%;">Activer</button>
+          </form>
+          {% else %}
+          <div style="margin-top:12px;font-size:.8rem;color:var(--primary);font-weight:600;"><i class="fas fa-circle" style="font-size:.5rem;"></i> Actif</div>
+          {% endif %}
+        </div>
+
+        <!-- Option 2: Admin Code -->
+        <div class="method-card {% if vsettings.method == 'admin_code' %}active{% endif %}">
+          {% if vsettings.method == 'admin_code' %}<div class="active-check"><i class="fas fa-check"></i></div>{% endif %}
+          <div class="method-icon">🔑</div>
+          <div class="method-num">Option 2</div>
+          <div class="method-title">Code de l'administrateur</div>
+          <div class="method-desc">Vous saisissez un code ici et l'envoyez manuellement à l'utilisateur.</div>
+          {% if vsettings.method != 'admin_code' %}
+          <form method="post" action="{% url 'dashboard:admin_set_verification_method' %}" style="margin-top:12px;">
+            {% csrf_token %}
+            <input type="hidden" name="method" value="admin_code">
+            <button type="submit" class="btn btn-outline btn-sm" style="width:100%;">Activer</button>
+          </form>
+          {% else %}
+          <div style="margin-top:12px;font-size:.8rem;color:var(--primary);font-weight:600;"><i class="fas fa-circle" style="font-size:.5rem;"></i> Actif</div>
+          {% endif %}
+        </div>
+
+        <!-- Option 3: Send Code -->
+        <div class="method-card {% if vsettings.method == 'send_code' %}active{% endif %}">
+          {% if vsettings.method == 'send_code' %}<div class="active-check"><i class="fas fa-check"></i></div>{% endif %}
+          <div class="method-icon">📧</div>
+          <div class="method-num">Option 3</div>
+          <div class="method-title">Envoi automatique</div>
+          <div class="method-desc">Le code est envoyé automatiquement par email + notification quand l'utilisateur le demande.</div>
+          {% if vsettings.method != 'send_code' %}
+          <form method="post" action="{% url 'dashboard:admin_set_verification_method' %}" style="margin-top:12px;">
+            {% csrf_token %}
+            <input type="hidden" name="method" value="send_code">
+            <button type="submit" class="btn btn-outline btn-sm" style="width:100%;">Activer</button>
+          </form>
+          {% else %}
+          <div style="margin-top:12px;font-size:.8rem;color:var(--primary);font-weight:600;"><i class="fas fa-circle" style="font-size:.5rem;"></i> Actif</div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PENDING VERIFICATIONS ──────────────────── -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h3><i class="fas fa-clock"></i> Demandes en attente
+        {% if verifications %}<span class="tab-count">{{ verifications|length }}</span>{% endif %}
+      </h3>
+    </div>
+    <div class="card-body">
+      {% if verifications %}
+        {% for ver in verifications %}
+        <div class="ver-card">
+          <div class="ver-card-header">
+            <div class="ver-user">
+              <div class="ver-avatar">{{ ver.user.username|first|upper }}</div>
+              <div class="ver-info">
+                <strong>{{ ver.user.username }}</strong>
+                <small>{{ ver.user.email }}</small>
+                <small>Demandé le {{ ver.created_at|date:"d/m/Y à H:i" }}</small>
+              </div>
+            </div>
+            <div class="ver-meta">
+              {% if ver.status == 'pending' %}
+              <span class="badge badge-warning"><i class="fas fa-clock"></i> En attente</span>
+              {% elif ver.status == 'code_entered' %}
+              <span class="badge badge-info"><i class="fas fa-check"></i> Code soumis</span>
+              {% endif %}
+              {% if ver.method %}
+              <span class="badge" style="background:rgba(99,102,241,.1);color:var(--primary);">
+                {% if ver.method == 'phone' %}<i class="fas fa-phone"></i> Téléphone
+                {% elif ver.method == 'admin_code' %}<i class="fas fa-key"></i> Code admin
+                {% else %}<i class="fas fa-paper-plane"></i> Envoi auto{% endif %}
+              </span>
+              {% endif %}
+            </div>
+          </div>
+
+          {# ─── PHONE: show phone number ─────────── #}
+          {% if ver.method == 'phone' or vsettings.method == 'phone' %}
+          {% if ver.phone_snapshot %}
+          <div class="phone-display">
+            <i class="fas fa-phone"></i>
+            {{ ver.phone_snapshot }}
+          </div>
+          <p class="text-secondary" style="font-size:.85rem;">
+            <i class="fas fa-info-circle"></i>
+            Contactez cet utilisateur au numéro ci-dessus pour vérifier son identité, puis validez.
+          </p>
+          {% else %}
+          <p class="text-secondary" style="font-size:.85rem;">Aucun numéro de téléphone enregistré.</p>
+          {% endif %}
+
+          {# ─── ADMIN_CODE: code management ──────── #}
+          {% elif ver.method == 'admin_code' or vsettings.method == 'admin_code' %}
+          {% if ver.verification_code %}
+          <div class="code-display">
+            <div class="code-mono">{{ ver.verification_code }}</div>
+            <div class="code-label">Code à envoyer manuellement à l'utilisateur (WhatsApp, Discord, email…)</div>
+          </div>
+          {% else %}
+          <p class="text-secondary" style="font-size:.85rem;margin-bottom:8px;">
+            <i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i>
+            Aucun code défini — saisissez un code à 6 chiffres à envoyer à l'utilisateur.
+          </p>
+          {% endif %}
+          <form method="post" action="{% url 'dashboard:admin_set_verification_code' ver.pk %}">
+            {% csrf_token %}
+            <div class="code-input-row">
+              <input type="text" name="verification_code" class="form-control"
+                     maxlength="6" pattern="\d{6}" inputmode="numeric"
+                     placeholder="XXXXXX"
+                     value="{{ ver.verification_code }}"
+                     title="6 chiffres">
+              <button type="submit" class="btn btn-outline btn-sm">
+                <i class="fas fa-save"></i> {% if ver.verification_code %}Modifier{% else %}Définir{% endif %} le code
+              </button>
+            </div>
+          </form>
+
+          {% if ver.status == 'code_entered' %}
+          <div style="margin-top:12px;padding:10px 14px;background:rgba(99,102,241,.06);border-radius:8px;font-size:.88rem;">
+            Code saisi par l'utilisateur :
+            <strong style="font-family:monospace;font-size:1.1rem;">{{ ver.entered_code }}</strong>
+            {% if ver.verification_code and ver.entered_code == ver.verification_code %}
+            <span class="code-match-ok"><i class="fas fa-check-circle"></i> Codes identiques</span>
+            {% elif ver.verification_code %}
+            <span class="code-match-bad"><i class="fas fa-times-circle"></i> Codes différents</span>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {# ─── SEND_CODE: auto sent ─────────────── #}
+          {% else %}
+          {% if ver.code_sent_at %}
+          <div class="code-display">
+            <div class="code-mono">{{ ver.verification_code }}</div>
+            <div class="code-label">Code envoyé automatiquement le {{ ver.code_sent_at|date:"d/m/Y à H:i" }}</div>
+          </div>
+          {% else %}
+          <p class="text-secondary" style="font-size:.85rem;">
+            <i class="fas fa-info-circle"></i>
+            L'utilisateur n'a pas encore demandé l'envoi du code.
+          </p>
+          {% endif %}
+
+          {% if ver.status == 'code_entered' %}
+          <div style="margin-top:12px;padding:10px 14px;background:rgba(99,102,241,.06);border-radius:8px;font-size:.88rem;">
+            Code saisi par l'utilisateur :
+            <strong style="font-family:monospace;font-size:1.1rem;">{{ ver.entered_code }}</strong>
+            {% if ver.verification_code and ver.entered_code == ver.verification_code %}
+            <span class="code-match-ok"><i class="fas fa-check-circle"></i> Codes identiques</span>
+            {% elif ver.verification_code %}
+            <span class="code-match-bad"><i class="fas fa-times-circle"></i> Codes différents</span>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% endif %}
+
+          <!-- Action buttons -->
+          <div class="ver-actions">
+            <form method="post" action="{% url 'dashboard:admin_verification_action' ver.pk %}"
+                  onsubmit="return confirm('Valider le compte de {{ ver.user.username }} ?')">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="verify">
+              <button type="submit" class="btn btn-success btn-sm">
+                <i class="fas fa-check"></i> Valider le compte
+              </button>
+            </form>
+            <form method="post" action="{% url 'dashboard:admin_verification_action' ver.pk %}"
+                  onsubmit="return confirm('Refuser la demande de {{ ver.user.username }} ?')">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="reject">
+              <button type="submit" class="btn btn-danger btn-sm">
+                <i class="fas fa-times"></i> Refuser
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+
+      {% else %}
+      <div class="empty-state">
+        <i class="fas fa-shield-alt"></i>
+        <p>Aucune demande de vérification en attente.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── HISTORY ─────────────────────────────────── -->
+  {% if history %}
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-history"></i> Historique des vérifications</h3>
+      <span class="text-secondary text-sm">{{ history|length }} dernier(s) comptes vérifiés</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Utilisateur</th>
+              <th>Email</th>
+              <th>Méthode</th>
+              <th>Date de vérification</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ver in history %}
+            <tr class="history-row">
+              <td><strong>{{ ver.user.username }}</strong></td>
+              <td>{{ ver.user.email }}</td>
+              <td>
+                {% if ver.method == 'phone' %}<span class="badge" style="background:rgba(16,185,129,.12);color:var(--success);"><i class="fas fa-phone"></i> Téléphone</span>
+                {% elif ver.method == 'admin_code' %}<span class="badge" style="background:rgba(99,102,241,.12);color:var(--primary-light);"><i class="fas fa-key"></i> Code admin</span>
+                {% elif ver.method == 'send_code' %}<span class="badge" style="background:rgba(245,158,11,.12);color:var(--warning);"><i class="fas fa-paper-plane"></i> Envoi auto</span>
+                {% else %}<span class="badge badge-secondary">—</span>{% endif %}
+              </td>
+              <td><small>{{ ver.updated_at|date:"d/m/Y à H:i" }}</small></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}

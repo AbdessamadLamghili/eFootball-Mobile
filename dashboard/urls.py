@@ -25,5 +25,7 @@ urlpatterns = [
     path('admin-panel/mission-requests/', views.admin_mission_requests, name='admin_mission_requests'),
     path('admin-panel/mission-requests/<int:pk>/action/', views.admin_mission_request_action, name='admin_mission_request_action'),
     path('admin-panel/verifications/', views.admin_verifications, name='admin_verifications'),
+    path('admin-panel/verifications/set-method/', views.admin_set_verification_method, name='admin_set_verification_method'),
+    path('admin-panel/verifications/<int:pk>/set-code/', views.admin_set_verification_code, name='admin_set_verification_code'),
     path('admin-panel/verifications/<int:pk>/action/', views.admin_verification_action, name='admin_verification_action'),
 ]

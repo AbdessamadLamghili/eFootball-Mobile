@@ -11,12 +11,12 @@ from django.views import View
 from django_ratelimit.decorators import ratelimit
 from datetime import timedelta, date
 
-from .models import User, UserProfile, EmailVerificationToken, PasswordResetToken, PasswordResetCode, EmailVerificationCode, DailyReward, PointTransaction, AccountVerificationRequest
+from .models import User, UserProfile, EmailVerificationToken, PasswordResetToken, PasswordResetCode, EmailVerificationCode, DailyReward, PointTransaction, AccountVerificationRequest, VerificationSettings
 from .forms import (
     RegisterForm, LoginForm, PasswordResetRequestForm,
     PasswordResetCodeForm, PasswordResetConfirmForm, EmailVerifyCodeForm, ProfileUpdateForm, AvatarUpdateForm,
 )
-from .emails import send_password_reset_code_email, send_email_verification_code_email
+from .emails import send_password_reset_code_email, send_email_verification_code_email, send_manual_verification_code_email
 from notifications.models import Notification
 from logs.models import ActivityLog
 from django.conf import settings
@@ -736,13 +736,15 @@ def _check_all_missions(user):
 
 @login_required
 def verification_request_view(request):
-    """User requests account verification — admin sends code manually by email."""
+    """User requests account verification — method depends on VerificationSettings."""
     user = request.user
     if user.is_email_verified:
         messages.info(request, 'Votre compte est déjà vérifié.')
         return redirect('dashboard:user_dashboard')
 
-    # Check if there's already a pending/submitted request
+    vsettings = VerificationSettings.get_current()
+    method = vsettings.method
+
     existing = AccountVerificationRequest.objects.filter(
         user=user
     ).exclude(status=AccountVerificationRequest.STATUS_REJECTED).order_by('-created_at').first()
@@ -751,39 +753,97 @@ def verification_request_view(request):
         action = request.POST.get('action')
 
         if action == 'request' and (not existing or existing.status == AccountVerificationRequest.STATUS_REJECTED):
-            req = AccountVerificationRequest.objects.create(user=user)
-            req.generate_code()
-            messages.success(
-                request,
-                'Votre demande a été envoyée. L\'admin vous enverra un code à 6 chiffres par email. '
-                'Revenez ici pour saisir ce code.'
+            # For phone method: require phone number
+            phone = request.POST.get('phone_number', '').strip()
+            if method == VerificationSettings.METHOD_PHONE:
+                saved_phone = user.profile.phone_number
+                if not phone and not saved_phone:
+                    messages.error(request, 'Veuillez entrer votre numéro de téléphone.')
+                    return render(request, 'accounts/verification_request.html', {
+                        'existing_request': None,
+                        'verification_method': method,
+                    })
+                if phone:
+                    user.profile.phone_number = phone
+                    user.profile.save(update_fields=['phone_number'])
+
+            req = AccountVerificationRequest.objects.create(
+                user=user,
+                method=method,
+                phone_snapshot=user.profile.phone_number,
             )
+            if method != VerificationSettings.METHOD_PHONE:
+                req.generate_code()
+
+            messages.success(request, 'Votre demande de vérification a été envoyée.')
             return redirect('accounts:verification_request')
 
         if action == 'submit_code' and existing and existing.status == AccountVerificationRequest.STATUS_PENDING:
             code = request.POST.get('code', '').strip()
-            if not code:
-                messages.error(request, 'Veuillez entrer le code reçu par email.')
+            if len(code) != 6 or not code.isdigit():
+                messages.error(request, 'Veuillez entrer un code valide à 6 chiffres.')
+            elif method == VerificationSettings.METHOD_ADMIN_CODE and existing.verification_code and code != existing.verification_code:
+                messages.error(request, 'Code incorrect. Vérifiez le code reçu et réessayez.')
             else:
                 existing.entered_code = code
                 existing.status = AccountVerificationRequest.STATUS_CODE_ENTERED
                 existing.save()
-                messages.success(
-                    request,
-                    'Code soumis. En attente de validation par l\'administrateur. '
-                    'Votre compte sera activé dès que l\'admin valide votre demande.'
-                )
+                messages.success(request, 'Code soumis ! Votre compte sera activé dès que l\'administrateur valide votre demande.')
             return redirect('accounts:verification_request')
 
         if action == 'new_request':
-            # Allow user to restart the process
             if existing:
                 existing.delete()
-            req = AccountVerificationRequest.objects.create(user=user)
-            req.generate_code()
+            req = AccountVerificationRequest.objects.create(
+                user=user,
+                method=method,
+                phone_snapshot=user.profile.phone_number,
+            )
+            if method != VerificationSettings.METHOD_PHONE:
+                req.generate_code()
             messages.success(request, 'Nouvelle demande de vérification envoyée.')
             return redirect('accounts:verification_request')
 
     return render(request, 'accounts/verification_request.html', {
         'existing_request': existing,
+        'verification_method': method,
     })
+
+
+@login_required
+def verification_send_code(request, pk):
+    """Option 3: user requests automatic code dispatch via email + notification."""
+    ver_request = get_object_or_404(AccountVerificationRequest, pk=pk, user=request.user)
+
+    if ver_request.status != AccountVerificationRequest.STATUS_PENDING:
+        messages.error(request, 'Cette demande ne permet pas l\'envoi de code.')
+        return redirect('accounts:verification_request')
+
+    if ver_request.code_sent_at:
+        elapsed = (timezone.now() - ver_request.code_sent_at).total_seconds()
+        if elapsed < 120:
+            messages.warning(request, 'Vous avez déjà reçu un code. Attendez 2 minutes avant de renvoyer.')
+            return redirect('accounts:verification_request')
+
+    code = ver_request.verification_code
+    if not code:
+        ver_request.generate_code()
+        code = ver_request.verification_code
+
+    try:
+        send_manual_verification_code_email(request.user, code)
+    except Exception:
+        pass
+
+    Notification.objects.create(
+        user=request.user,
+        title='Code de vérification',
+        message=f'Votre code de vérification est : {code} — Entrez-le sur la page de vérification.',
+        notification_type=Notification.TYPE_INFO,
+    )
+
+    ver_request.code_sent_at = timezone.now()
+    ver_request.save(update_fields=['code_sent_at'])
+
+    messages.success(request, 'Code envoyé par email et notification. Vérifiez votre boîte mail.')
+    return redirect('accounts:verification_request')

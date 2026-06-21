@@ -540,13 +540,57 @@ def admin_mission_request_action(request, pk):
 @login_required
 @user_passes_test(is_admin)
 def admin_verifications(request):
-    from accounts.models import AccountVerificationRequest
-    verifications = AccountVerificationRequest.objects.select_related('user').exclude(
+    from accounts.models import AccountVerificationRequest, VerificationSettings
+    vsettings = VerificationSettings.get_current()
+    verifications = AccountVerificationRequest.objects.select_related('user', 'user__profile').exclude(
         status=AccountVerificationRequest.STATUS_VERIFIED
     ).order_by('-created_at')
+    history = AccountVerificationRequest.objects.filter(
+        status=AccountVerificationRequest.STATUS_VERIFIED
+    ).select_related('user').order_by('-updated_at')[:30]
     return render(request, 'dashboard/admin_verifications.html', {
         'verifications': verifications,
+        'history': history,
+        'vsettings': vsettings,
+        'METHOD_PHONE': 'phone',
+        'METHOD_ADMIN_CODE': 'admin_code',
+        'METHOD_SEND_CODE': 'send_code',
     })
+
+
+@login_required
+@user_passes_test(is_admin)
+def admin_set_verification_method(request):
+    from accounts.models import VerificationSettings
+    if request.method == 'POST':
+        method = request.POST.get('method', '')
+        valid = [VerificationSettings.METHOD_PHONE, VerificationSettings.METHOD_ADMIN_CODE, VerificationSettings.METHOD_SEND_CODE]
+        if method in valid:
+            vsettings = VerificationSettings.get_current()
+            vsettings.method = method
+            vsettings.updated_by = request.user
+            vsettings.save()
+            labels = dict(VerificationSettings.METHOD_CHOICES)
+            messages.success(request, f'Méthode de vérification : {labels[method]}')
+        else:
+            messages.error(request, 'Méthode invalide.')
+    return redirect('dashboard:admin_verifications')
+
+
+@login_required
+@user_passes_test(is_admin)
+def admin_set_verification_code(request, pk):
+    from accounts.models import AccountVerificationRequest
+    if request.method == 'POST':
+        ver = get_object_or_404(AccountVerificationRequest, pk=pk)
+        code = request.POST.get('verification_code', '').strip()
+        if len(code) == 6 and code.isdigit():
+            ver.verification_code = code
+            ver.save(update_fields=['verification_code'])
+            messages.success(request, f'Code défini pour {ver.user.username}. Envoyez-le manuellement.')
+        else:
+            messages.error(request, 'Le code doit contenir exactement 6 chiffres.')
+    return redirect('dashboard:admin_verifications')
 
 
 @login_required
