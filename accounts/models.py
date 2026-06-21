@@ -109,7 +109,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     default_avatar = models.CharField(max_length=60, blank=True, default='')
-    phone_number = models.CharField(max_length=20, blank=True, verbose_name='Numéro de téléphone')
+    phone_number = models.CharField(max_length=30, blank=True, verbose_name='Numéro de téléphone')
     points_balance = models.PositiveIntegerField(default=0)
     total_points_earned = models.PositiveIntegerField(default=0)
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default=LEVEL_BRONZE)
@@ -390,11 +390,11 @@ class AccountVerificationRequest(models.Model):
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_requests')
-    verification_code = models.CharField(max_length=6, blank=True)
-    entered_code = models.CharField(max_length=6, blank=True)
+    verification_code = models.CharField(max_length=20, blank=True)
+    entered_code = models.CharField(max_length=20, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     method = models.CharField(max_length=20, blank=True)
-    phone_snapshot = models.CharField(max_length=20, blank=True)
+    phone_snapshot = models.CharField(max_length=30, blank=True)
     code_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

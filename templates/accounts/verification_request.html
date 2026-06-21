@@ -21,22 +21,24 @@
 .verify-card p  { color: var(--text-secondary); font-size: .95rem; line-height: 1.6; }
 .verify-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 
-/* OTP Input boxes (Gmail style) */
-.otp-row { display: flex; gap: 8px; justify-content: center; margin: 24px 0; }
-.otp-box {
-  width: 52px; height: 60px;
+/* Single code input (flexible length) */
+.code-single-input {
+  font-family: monospace;
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 6px;
   border: 2px solid var(--border);
   border-radius: 10px;
-  text-align: center;
-  font-size: 1.6rem;
-  font-weight: 700;
+  padding: 12px 16px;
+  width: 100%;
   background: var(--surface);
   color: var(--text);
-  transition: border-color .15s, box-shadow .15s;
   outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  margin: 20px 0;
 }
-.otp-box:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,.2); }
-.otp-box.filled { border-color: var(--primary); }
+.code-single-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,.2); }
 
 /* Phone badge */
 .phone-badge {
@@ -82,6 +84,7 @@
 .status-pending  { background: rgba(245,158,11,.12); color: var(--warning); }
 .status-submitted{ background: rgba(99,102,241,.12);  color: var(--primary-light); }
 .status-rejected { background: rgba(239,68,68,.12);   color: var(--error); }
+.status-waiting  { background: rgba(99,102,241,.08);  color: var(--primary); }
 </style>
 {% endblock %}
 
@@ -102,47 +105,9 @@
   {# ══════════════════════════════════════════════════════ #}
   {% if not existing_request %}
 
-  {% if verification_method == 'phone' %}
-  <div class="verify-icon verify-icon-phone"><i class="fas fa-phone-alt"></i></div>
-  <h2>Vérification par téléphone</h2>
-  <p>Entrez votre numéro de téléphone. L'administrateur vous contactera pour valider votre identité.</p>
-  <hr class="verify-divider">
-  <form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="request">
-    <div class="form-group" style="text-align:left;">
-      <label class="form-label"><i class="fas fa-phone"></i> Numéro de téléphone</label>
-      <input type="tel" name="phone_number" class="form-control" placeholder="+33 6 00 00 00 00" required style="font-size:1.1rem;letter-spacing:1px;">
-      <small style="color:var(--text-secondary);">Format international recommandé. Ex: +213 6 XX XX XX XX</small>
-    </div>
-    <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">
-      <i class="fas fa-paper-plane"></i> Demander la vérification
-    </button>
-  </form>
-
-  {% elif verification_method == 'admin_code' %}
-  <div class="verify-icon verify-icon-code"><i class="fas fa-key"></i></div>
-  <h2>Vérification par code</h2>
-  <p>L'administrateur va vous envoyer un code à 6 chiffres via son canal de communication (email, WhatsApp, Discord…).</p>
-  <hr class="verify-divider">
-  <div class="method-info">
-    <strong><i class="fas fa-info-circle"></i> Comment ça marche :</strong><br>
-    1 · Cliquez sur <strong>Demander</strong><br>
-    2 · L'admin vous envoie un code via son canal habituel<br>
-    3 · Entrez le code reçu pour valider
-  </div>
-  <form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="request">
-    <button type="submit" class="btn btn-primary btn-block">
-      <i class="fas fa-paper-plane"></i> Demander la vérification
-    </button>
-  </form>
-
-  {% else %}{# send_code #}
   <div class="verify-icon verify-icon-default"><i class="fas fa-shield-alt"></i></div>
   <h2>Vérification du compte</h2>
-  <p>Demandez votre vérification. Un code vous sera envoyé automatiquement par email et notification.</p>
+  <p>Soumettez votre demande. L'administrateur vous assignera une méthode de vérification et vous guidera dans les étapes suivantes.</p>
   <hr class="verify-divider">
   <form method="post">
     {% csrf_token %}
@@ -151,28 +116,47 @@
       <i class="fas fa-paper-plane"></i> Demander la vérification
     </button>
   </form>
-  {% endif %}
 
   {# ══════════════════════════════════════════════════════ #}
   {#  CASE 2 — Pending request                             #}
   {# ══════════════════════════════════════════════════════ #}
   {% elif existing_request.status == 'pending' %}
 
-  {% if existing_request.method == 'phone' or verification_method == 'phone' %}
+  {% if not existing_request.method %}
+  {# ── No method assigned yet ─────────────────────────── #}
+  <div class="steps"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
+  <div class="verify-icon verify-icon-waiting"><i class="fas fa-hourglass-half"></i></div>
+  <span class="status-badge status-waiting"><i class="fas fa-clock"></i> En attente</span>
+  <h2>Demande envoyée</h2>
+  <p>L'administrateur va choisir votre méthode de vérification et vous contacter. Revenez vérifier ou attendez la notification.</p>
+
+  {% elif existing_request.method == 'phone' %}
   {# ── OPTION 1: Phone ────────────────────────────────── #}
   <div class="steps"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
   <div class="verify-icon verify-icon-waiting"><i class="fas fa-phone-alt"></i></div>
   <span class="status-badge status-pending"><i class="fas fa-clock"></i> En attente de contact</span>
-  <h2>L'administrateur va vous appeler</h2>
+  <h2>Vérification par téléphone</h2>
   {% if existing_request.phone_snapshot %}
   <p>Votre numéro enregistré :</p>
   <div class="phone-badge"><i class="fas fa-phone"></i> {{ existing_request.phone_snapshot }}</div>
   <p>Restez disponible. L'administrateur vous contactera pour vérifier votre identité.</p>
   {% else %}
-  <p>L'administrateur va vous contacter pour vérifier votre identité.</p>
+  <p>Entrez votre numéro de téléphone. L'administrateur vous contactera pour vérifier votre identité.</p>
+  <hr class="verify-divider">
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="submit_phone">
+    <div class="form-group" style="text-align:left;">
+      <label class="form-label"><i class="fas fa-phone"></i> Numéro de téléphone</label>
+      <input type="text" name="phone_number" class="form-control" placeholder="+213 6 XX XX XX XX" style="font-size:1.1rem;letter-spacing:1px;" autocomplete="off">
+    </div>
+    <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">
+      <i class="fas fa-save"></i> Enregistrer mon numéro
+    </button>
+  </form>
   {% endif %}
 
-  {% elif existing_request.method == 'send_code' or verification_method == 'send_code' %}
+  {% elif existing_request.method == 'send_code' %}
   {# ── OPTION 3: Send Me Code ─────────────────────────── #}
   <div class="steps"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
   <div class="verify-icon verify-icon-code"><i class="fas fa-paper-plane"></i></div>
@@ -194,13 +178,10 @@
   {% if existing_request.code_sent_at %}
   <hr class="verify-divider">
   <p style="font-size:.9rem;"><strong>Entrez le code reçu :</strong></p>
-  <form method="post" id="codeForm">
+  <form method="post">
     {% csrf_token %}
     <input type="hidden" name="action" value="submit_code">
-    <input type="hidden" name="code" id="codeHidden">
-    <div class="otp-row">
-      {% for i in "123456" %}<input type="text" maxlength="1" class="otp-box" inputmode="numeric" autocomplete="off">{% endfor %}
-    </div>
+    <input type="text" name="code" class="code-single-input" autocomplete="off" placeholder="···">
     <button type="submit" class="btn btn-primary btn-block">
       <i class="fas fa-check"></i> Valider le code
     </button>
@@ -213,15 +194,12 @@
   <div class="verify-icon verify-icon-code"><i class="fas fa-key"></i></div>
   <span class="status-badge status-pending"><i class="fas fa-clock"></i> En attente du code</span>
   <h2>Entrez le code de l'administrateur</h2>
-  <p>L'administrateur va vous envoyer un code à 6 chiffres via son canal habituel (WhatsApp, Discord, email perso…). Saisissez-le dès réception.</p>
+  <p>L'administrateur va vous envoyer un code via son canal habituel (WhatsApp, Discord, email perso…). Saisissez-le dès réception.</p>
   <hr class="verify-divider">
-  <form method="post" id="codeForm">
+  <form method="post">
     {% csrf_token %}
     <input type="hidden" name="action" value="submit_code">
-    <input type="hidden" name="code" id="codeHidden">
-    <div class="otp-row">
-      {% for i in "123456" %}<input type="text" maxlength="1" class="otp-box" inputmode="numeric" autocomplete="off">{% endfor %}
-    </div>
+    <input type="text" name="code" class="code-single-input" autocomplete="off" placeholder="···">
     <button type="submit" class="btn btn-primary btn-block">
       <i class="fas fa-check"></i> Valider le code
     </button>
@@ -282,62 +260,4 @@
 
 </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-(function () {
-  const boxes = document.querySelectorAll('.otp-box');
-  const hidden = document.getElementById('codeHidden');
-  if (!boxes.length) return;
-
-  boxes[0].focus();
-
-  boxes.forEach((box, i) => {
-    box.addEventListener('input', () => {
-      box.value = box.value.replace(/\D/, '');
-      if (box.value) {
-        box.classList.add('filled');
-        if (i < boxes.length - 1) boxes[i + 1].focus();
-      } else {
-        box.classList.remove('filled');
-      }
-      syncHidden();
-    });
-
-    box.addEventListener('keydown', e => {
-      if (e.key === 'Backspace' && !box.value && i > 0) {
-        boxes[i - 1].focus();
-        boxes[i - 1].value = '';
-        boxes[i - 1].classList.remove('filled');
-        syncHidden();
-      }
-    });
-  });
-
-  document.addEventListener('paste', e => {
-    const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
-    if (!text) return;
-    e.preventDefault();
-    [...text].forEach((ch, i) => {
-      if (boxes[i]) { boxes[i].value = ch; boxes[i].classList.add('filled'); }
-    });
-    if (boxes[text.length]) boxes[text.length].focus();
-    syncHidden();
-  });
-
-  function syncHidden() {
-    if (hidden) hidden.value = [...boxes].map(b => b.value).join('');
-  }
-
-  const form = document.getElementById('codeForm');
-  if (form) form.addEventListener('submit', e => {
-    syncHidden();
-    if (!hidden || hidden.value.length !== 6) {
-      e.preventDefault();
-      alert('Veuillez entrer les 6 chiffres du code.');
-    }
-  });
-})();
-</script>
 {% endblock %}

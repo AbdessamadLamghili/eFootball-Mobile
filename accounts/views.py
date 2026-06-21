@@ -736,14 +736,11 @@ def _check_all_missions(user):
 
 @login_required
 def verification_request_view(request):
-    """User requests account verification — method depends on VerificationSettings."""
+    """User requests account verification. Admin assigns the method per-request."""
     user = request.user
     if user.is_email_verified:
         messages.info(request, 'Votre compte est déjà vérifié.')
         return redirect('dashboard:user_dashboard')
-
-    vsettings = VerificationSettings.get_current()
-    method = vsettings.method
 
     existing = AccountVerificationRequest.objects.filter(
         user=user
@@ -753,36 +750,27 @@ def verification_request_view(request):
         action = request.POST.get('action')
 
         if action == 'request' and (not existing or existing.status == AccountVerificationRequest.STATUS_REJECTED):
-            # For phone method: require phone number
+            AccountVerificationRequest.objects.create(user=user, method='')
+            messages.success(request, 'Votre demande de vérification a été envoyée. L\'administrateur va vous assigner une méthode.')
+            return redirect('accounts:verification_request')
+
+        if action == 'submit_phone' and existing and existing.method == 'phone':
             phone = request.POST.get('phone_number', '').strip()
-            if method == VerificationSettings.METHOD_PHONE:
-                saved_phone = user.profile.phone_number
-                if not phone and not saved_phone:
-                    messages.error(request, 'Veuillez entrer votre numéro de téléphone.')
-                    return render(request, 'accounts/verification_request.html', {
-                        'existing_request': None,
-                        'verification_method': method,
-                    })
-                if phone:
-                    user.profile.phone_number = phone
-                    user.profile.save(update_fields=['phone_number'])
-
-            req = AccountVerificationRequest.objects.create(
-                user=user,
-                method=method,
-                phone_snapshot=user.profile.phone_number,
-            )
-            if method != VerificationSettings.METHOD_PHONE:
-                req.generate_code()
-
-            messages.success(request, 'Votre demande de vérification a été envoyée.')
+            if not phone:
+                messages.error(request, 'Veuillez entrer votre numéro de téléphone.')
+            else:
+                existing.phone_snapshot = phone
+                existing.save(update_fields=['phone_snapshot'])
+                user.profile.phone_number = phone
+                user.profile.save(update_fields=['phone_number'])
+                messages.success(request, 'Numéro enregistré. L\'administrateur va vous contacter.')
             return redirect('accounts:verification_request')
 
         if action == 'submit_code' and existing and existing.status == AccountVerificationRequest.STATUS_PENDING:
             code = request.POST.get('code', '').strip()
-            if len(code) != 6 or not code.isdigit():
-                messages.error(request, 'Veuillez entrer un code valide à 6 chiffres.')
-            elif method == VerificationSettings.METHOD_ADMIN_CODE and existing.verification_code and code != existing.verification_code:
+            if not code:
+                messages.error(request, 'Veuillez entrer le code.')
+            elif existing.verification_code and code != existing.verification_code:
                 messages.error(request, 'Code incorrect. Vérifiez le code reçu et réessayez.')
             else:
                 existing.entered_code = code
@@ -794,19 +782,12 @@ def verification_request_view(request):
         if action == 'new_request':
             if existing:
                 existing.delete()
-            req = AccountVerificationRequest.objects.create(
-                user=user,
-                method=method,
-                phone_snapshot=user.profile.phone_number,
-            )
-            if method != VerificationSettings.METHOD_PHONE:
-                req.generate_code()
+            AccountVerificationRequest.objects.create(user=user, method='')
             messages.success(request, 'Nouvelle demande de vérification envoyée.')
             return redirect('accounts:verification_request')
 
     return render(request, 'accounts/verification_request.html', {
         'existing_request': existing,
-        'verification_method': method,
     })
 
 

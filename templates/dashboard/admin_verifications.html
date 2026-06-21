@@ -3,25 +3,6 @@
 
 {% block extra_css %}
 <style>
-/* Method selector cards */
-.method-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 32px; }
-.method-card {
-  border: 2px solid var(--border); border-radius: 14px; padding: 20px 16px;
-  text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
-  background: var(--surface); position: relative;
-}
-.method-card.active { border-color: var(--primary); background: rgba(99,102,241,.06); }
-.method-card .method-icon { font-size: 1.8rem; margin-bottom: 10px; }
-.method-card .method-num { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-secondary); margin-bottom: 4px; }
-.method-card .method-title { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-.method-card .method-desc { font-size: .78rem; color: var(--text-secondary); line-height: 1.4; }
-.method-card .active-check {
-  position: absolute; top: 10px; right: 10px;
-  width: 22px; height: 22px; border-radius: 50%;
-  background: var(--primary); color: #fff;
-  display: flex; align-items: center; justify-content: center; font-size: .7rem;
-}
-
 /* Verification card */
 .ver-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -29,10 +10,33 @@
 }
 .ver-card-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
 .ver-user { display: flex; align-items: center; gap: 12px; }
-.ver-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: rgba(99,102,241,.15); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--primary); font-size: 1.1rem; flex-shrink: 0; }
+.ver-avatar { width: 44px; height: 44px; border-radius: 50%; background: rgba(99,102,241,.15); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--primary); font-size: 1.1rem; flex-shrink: 0; }
 .ver-info strong { font-size: 1rem; }
 .ver-info small { display: block; color: var(--text-secondary); font-size: .8rem; }
 .ver-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Per-request method toggle */
+.method-toggle {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  background: rgba(99,102,241,.05); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+  align-items: center;
+}
+.method-toggle-label { font-size: .8rem; font-weight: 600; color: var(--text-secondary); margin-right: 4px; white-space: nowrap; }
+.method-toggle form { display: inline; }
+.method-btn {
+  padding: 5px 12px; border-radius: 6px; font-size: .8rem; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
+  cursor: pointer; transition: all .15s;
+}
+.method-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,.06); }
+.method-btn.active { border-color: var(--primary); background: var(--primary); color: #fff; }
+.method-unset-hint {
+  font-size: .82rem; color: var(--warning);
+  background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25);
+  border-radius: 8px; padding: 8px 12px; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
 
 /* Code display & input */
 .code-display {
@@ -57,7 +61,7 @@
 
 /* Inline code form */
 .code-input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.code-input-row input[type="text"] { font-family: monospace; font-size: 1.1rem; letter-spacing: 4px; width: 130px; }
+.code-input-row input[type="text"] { font-family: monospace; font-size: 1.1rem; letter-spacing: 4px; width: 160px; }
 
 /* Action buttons row */
 .ver-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
@@ -75,80 +79,11 @@
   <div class="page-header">
     <div>
       <h1><i class="fas fa-shield-alt"></i> Vérifications de comptes</h1>
-      <p class="page-subtitle">Gérez les demandes de vérification et la méthode active</p>
+      <p class="page-subtitle">Assignez une méthode à chaque utilisateur et gérez les demandes</p>
     </div>
     <a href="{% url 'dashboard:admin_dashboard' %}" class="btn btn-outline btn-sm">
       <i class="fas fa-arrow-left"></i> Tableau de bord
     </a>
-  </div>
-
-  <!-- ── METHOD SELECTOR ────────────────────────── -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h3><i class="fas fa-cog"></i> Méthode de vérification active</h3>
-      {% if vsettings.updated_at %}
-      <small class="text-secondary">Mise à jour le {{ vsettings.updated_at|date:"d/m/Y à H:i" }}{% if vsettings.updated_by %} par {{ vsettings.updated_by.username }}{% endif %}</small>
-      {% endif %}
-    </div>
-    <div class="card-body">
-      <div class="method-cards">
-
-        <!-- Option 1: Phone -->
-        <div class="method-card {% if vsettings.method == 'phone' %}active{% endif %}">
-          {% if vsettings.method == 'phone' %}<div class="active-check"><i class="fas fa-check"></i></div>{% endif %}
-          <div class="method-icon">📱</div>
-          <div class="method-num">Option 1</div>
-          <div class="method-title">Numéro de téléphone</div>
-          <div class="method-desc">L'utilisateur fournit son numéro. Vous le contactez manuellement pour vérifier.</div>
-          {% if vsettings.method != 'phone' %}
-          <form method="post" action="{% url 'dashboard:admin_set_verification_method' %}" style="margin-top:12px;">
-            {% csrf_token %}
-            <input type="hidden" name="method" value="phone">
-            <button type="submit" class="btn btn-outline btn-sm" style="width:100%;">Activer</button>
-          </form>
-          {% else %}
-          <div style="margin-top:12px;font-size:.8rem;color:var(--primary);font-weight:600;"><i class="fas fa-circle" style="font-size:.5rem;"></i> Actif</div>
-          {% endif %}
-        </div>
-
-        <!-- Option 2: Admin Code -->
-        <div class="method-card {% if vsettings.method == 'admin_code' %}active{% endif %}">
-          {% if vsettings.method == 'admin_code' %}<div class="active-check"><i class="fas fa-check"></i></div>{% endif %}
-          <div class="method-icon">🔑</div>
-          <div class="method-num">Option 2</div>
-          <div class="method-title">Code de l'administrateur</div>
-          <div class="method-desc">Vous saisissez un code ici et l'envoyez manuellement à l'utilisateur.</div>
-          {% if vsettings.method != 'admin_code' %}
-          <form method="post" action="{% url 'dashboard:admin_set_verification_method' %}" style="margin-top:12px;">
-            {% csrf_token %}
-            <input type="hidden" name="method" value="admin_code">
-            <button type="submit" class="btn btn-outline btn-sm" style="width:100%;">Activer</button>
-          </form>
-          {% else %}
-          <div style="margin-top:12px;font-size:.8rem;color:var(--primary);font-weight:600;"><i class="fas fa-circle" style="font-size:.5rem;"></i> Actif</div>
-          {% endif %}
-        </div>
-
-        <!-- Option 3: Send Code -->
-        <div class="method-card {% if vsettings.method == 'send_code' %}active{% endif %}">
-          {% if vsettings.method == 'send_code' %}<div class="active-check"><i class="fas fa-check"></i></div>{% endif %}
-          <div class="method-icon">📧</div>
-          <div class="method-num">Option 3</div>
-          <div class="method-title">Envoi automatique</div>
-          <div class="method-desc">Le code est envoyé automatiquement par email + notification quand l'utilisateur le demande.</div>
-          {% if vsettings.method != 'send_code' %}
-          <form method="post" action="{% url 'dashboard:admin_set_verification_method' %}" style="margin-top:12px;">
-            {% csrf_token %}
-            <input type="hidden" name="method" value="send_code">
-            <button type="submit" class="btn btn-outline btn-sm" style="width:100%;">Activer</button>
-          </form>
-          {% else %}
-          <div style="margin-top:12px;font-size:.8rem;color:var(--primary);font-weight:600;"><i class="fas fa-circle" style="font-size:.5rem;"></i> Actif</div>
-          {% endif %}
-        </div>
-
-      </div>
-    </div>
   </div>
 
   <!-- ── PENDING VERIFICATIONS ──────────────────── -->
@@ -187,8 +122,41 @@
             </div>
           </div>
 
+          {# ── Per-request method selector ──────────────────── #}
+          <div class="method-toggle">
+            <span class="method-toggle-label"><i class="fas fa-sliders-h"></i> Méthode :</span>
+            <form method="post" action="{% url 'dashboard:admin_set_request_method' ver.pk %}">
+              {% csrf_token %}
+              <button type="submit" name="method" value="phone"
+                      class="method-btn {% if ver.method == 'phone' %}active{% endif %}">
+                📱 Téléphone
+              </button>
+            </form>
+            <form method="post" action="{% url 'dashboard:admin_set_request_method' ver.pk %}">
+              {% csrf_token %}
+              <button type="submit" name="method" value="admin_code"
+                      class="method-btn {% if ver.method == 'admin_code' %}active{% endif %}">
+                🔑 Code admin
+              </button>
+            </form>
+            <form method="post" action="{% url 'dashboard:admin_set_request_method' ver.pk %}">
+              {% csrf_token %}
+              <button type="submit" name="method" value="send_code"
+                      class="method-btn {% if ver.method == 'send_code' %}active{% endif %}">
+                📧 Envoi auto
+              </button>
+            </form>
+          </div>
+
+          {% if not ver.method %}
+          <div class="method-unset-hint">
+            <i class="fas fa-exclamation-triangle"></i>
+            Aucune méthode assignée — choisissez une méthode ci-dessus pour continuer.
+          </div>
+          {% endif %}
+
           {# ─── PHONE: show phone number ─────────── #}
-          {% if ver.method == 'phone' or vsettings.method == 'phone' %}
+          {% if ver.method == 'phone' %}
           {% if ver.phone_snapshot %}
           <div class="phone-display">
             <i class="fas fa-phone"></i>
@@ -199,11 +167,14 @@
             Contactez cet utilisateur au numéro ci-dessus pour vérifier son identité, puis validez.
           </p>
           {% else %}
-          <p class="text-secondary" style="font-size:.85rem;">Aucun numéro de téléphone enregistré.</p>
+          <p class="text-secondary" style="font-size:.85rem;">
+            <i class="fas fa-info-circle"></i>
+            L'utilisateur n'a pas encore renseigné son numéro de téléphone. Il le verra sur sa page de vérification.
+          </p>
           {% endif %}
 
           {# ─── ADMIN_CODE: code management ──────── #}
-          {% elif ver.method == 'admin_code' or vsettings.method == 'admin_code' %}
+          {% elif ver.method == 'admin_code' %}
           {% if ver.verification_code %}
           <div class="code-display">
             <div class="code-mono">{{ ver.verification_code }}</div>
@@ -212,17 +183,17 @@
           {% else %}
           <p class="text-secondary" style="font-size:.85rem;margin-bottom:8px;">
             <i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i>
-            Aucun code défini — saisissez un code à 6 chiffres à envoyer à l'utilisateur.
+            Aucun code défini — saisissez le code à envoyer à l'utilisateur.
           </p>
           {% endif %}
           <form method="post" action="{% url 'dashboard:admin_set_verification_code' ver.pk %}">
             {% csrf_token %}
             <div class="code-input-row">
               <input type="text" name="verification_code" class="form-control"
-                     maxlength="6" pattern="\d{6}" inputmode="numeric"
-                     placeholder="XXXXXX"
+                     maxlength="20"
+                     placeholder="Code…"
                      value="{{ ver.verification_code }}"
-                     title="6 chiffres">
+                     autocomplete="off">
               <button type="submit" class="btn btn-outline btn-sm">
                 <i class="fas fa-save"></i> {% if ver.verification_code %}Modifier{% else %}Définir{% endif %} le code
               </button>
@@ -242,7 +213,7 @@
           {% endif %}
 
           {# ─── SEND_CODE: auto sent ─────────────── #}
-          {% else %}
+          {% elif ver.method == 'send_code' %}
           {% if ver.code_sent_at %}
           <div class="code-display">
             <div class="code-mono">{{ ver.verification_code }}</div>

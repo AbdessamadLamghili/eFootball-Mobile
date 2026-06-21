@@ -540,8 +540,7 @@ def admin_mission_request_action(request, pk):
 @login_required
 @user_passes_test(is_admin)
 def admin_verifications(request):
-    from accounts.models import AccountVerificationRequest, VerificationSettings
-    vsettings = VerificationSettings.get_current()
+    from accounts.models import AccountVerificationRequest
     verifications = AccountVerificationRequest.objects.select_related('user', 'user__profile').exclude(
         status=AccountVerificationRequest.STATUS_VERIFIED
     ).order_by('-created_at')
@@ -551,11 +550,34 @@ def admin_verifications(request):
     return render(request, 'dashboard/admin_verifications.html', {
         'verifications': verifications,
         'history': history,
-        'vsettings': vsettings,
-        'METHOD_PHONE': 'phone',
-        'METHOD_ADMIN_CODE': 'admin_code',
-        'METHOD_SEND_CODE': 'send_code',
     })
+
+
+@login_required
+@user_passes_test(is_admin)
+def admin_set_request_method(request, pk):
+    """Assign a verification method to a specific user's request."""
+    from accounts.models import AccountVerificationRequest
+    if request.method == 'POST':
+        ver = get_object_or_404(AccountVerificationRequest, pk=pk)
+        method = request.POST.get('method', '')
+        valid = ['phone', 'admin_code', 'send_code']
+        if method in valid:
+            ver.method = method
+            if ver.status == AccountVerificationRequest.STATUS_CODE_ENTERED:
+                ver.status = AccountVerificationRequest.STATUS_PENDING
+            ver.save(update_fields=['method', 'status'])
+            labels = {'phone': 'Téléphone', 'admin_code': 'Code admin', 'send_code': 'Envoi automatique'}
+            messages.success(request, f'Méthode "{labels[method]}" assignée à {ver.user.username}.')
+            Notification.objects.create(
+                user=ver.user,
+                title='Méthode de vérification assignée',
+                message='L\'administrateur a configuré votre méthode de vérification. Consultez la page de vérification.',
+                notification_type=Notification.TYPE_INFO,
+            )
+        else:
+            messages.error(request, 'Méthode invalide.')
+    return redirect('dashboard:admin_verifications')
 
 
 @login_required
@@ -584,12 +606,12 @@ def admin_set_verification_code(request, pk):
     if request.method == 'POST':
         ver = get_object_or_404(AccountVerificationRequest, pk=pk)
         code = request.POST.get('verification_code', '').strip()
-        if len(code) == 6 and code.isdigit():
+        if code:
             ver.verification_code = code
             ver.save(update_fields=['verification_code'])
             messages.success(request, f'Code défini pour {ver.user.username}. Envoyez-le manuellement.')
         else:
-            messages.error(request, 'Le code doit contenir exactement 6 chiffres.')
+            messages.error(request, 'Veuillez entrer un code.')
     return redirect('dashboard:admin_verifications')
 
 
