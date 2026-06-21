@@ -767,16 +767,27 @@ def verification_request_view(request):
             return redirect('accounts:verification_request')
 
         if action == 'submit_code' and existing and existing.status == AccountVerificationRequest.STATUS_PENDING:
-            code = request.POST.get('code', '').strip()
-            if not code:
-                messages.error(request, 'Veuillez entrer le code.')
-            elif existing.verification_code and code != existing.verification_code:
-                messages.error(request, 'Code incorrect. Vérifiez le code reçu et réessayez.')
+            if existing.method == 'admin_code':
+                # Code is displayed on the page — user just clicks Valider, no typing
+                if not existing.verification_code:
+                    messages.error(request, "L'administrateur n'a pas encore configuré votre code. Attendez la notification.")
+                else:
+                    existing.entered_code = existing.verification_code
+                    existing.status = AccountVerificationRequest.STATUS_CODE_ENTERED
+                    existing.save()
+                    messages.success(request, 'Confirmé ! L\'administrateur va valider votre compte.')
             else:
-                existing.entered_code = code
-                existing.status = AccountVerificationRequest.STATUS_CODE_ENTERED
-                existing.save()
-                messages.success(request, 'Code soumis ! Votre compte sera activé dès que l\'administrateur valide votre demande.')
+                # send_code method: code was sent by email, user types it
+                code = request.POST.get('code', '').strip()
+                if not code:
+                    messages.error(request, 'Veuillez entrer le code reçu.')
+                elif existing.verification_code and code != existing.verification_code:
+                    messages.error(request, 'Code incorrect. Vérifiez le code reçu dans votre email et réessayez.')
+                else:
+                    existing.entered_code = code
+                    existing.status = AccountVerificationRequest.STATUS_CODE_ENTERED
+                    existing.save()
+                    messages.success(request, 'Code soumis ! Votre compte sera activé dès que l\'administrateur valide votre demande.')
             return redirect('accounts:verification_request')
 
         if action == 'new_request':

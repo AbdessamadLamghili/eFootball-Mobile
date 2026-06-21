@@ -189,21 +189,32 @@
   {% endif %}
 
   {% else %}
-  {# ── OPTION 2: Admin Code ───────────────────────────── #}
+  {# ── OPTION 2: Admin Code — displayed on page ────────── #}
   <div class="steps"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
   <div class="verify-icon verify-icon-code"><i class="fas fa-key"></i></div>
-  <span class="status-badge status-pending"><i class="fas fa-clock"></i> En attente du code</span>
-  <h2>Entrez le code de l'administrateur</h2>
-  <p>L'administrateur va vous envoyer un code via son canal habituel (WhatsApp, Discord, email perso…). Saisissez-le dès réception.</p>
+  <span class="status-badge status-pending"><i class="fas fa-clock"></i> Code de vérification</span>
+  <h2>Votre code de vérification</h2>
+  {% if existing_request.verification_code %}
+  <p>L'administrateur a configuré votre code. Cliquez sur <strong>Valider</strong> pour confirmer.</p>
   <hr class="verify-divider">
+  <div style="background:rgba(99,102,241,.08);border:2px dashed var(--primary);border-radius:14px;padding:24px 16px;margin:16px 0;">
+    <div style="font-family:monospace;font-size:3rem;font-weight:800;letter-spacing:10px;color:var(--primary-light);line-height:1;">{{ existing_request.verification_code }}</div>
+    <div style="font-size:.78rem;color:var(--text-secondary);margin-top:8px;">Code attribué par l'administrateur</div>
+  </div>
   <form method="post">
     {% csrf_token %}
     <input type="hidden" name="action" value="submit_code">
-    <input type="text" name="code" class="code-single-input" autocomplete="off" placeholder="···">
-    <button type="submit" class="btn btn-primary btn-block">
-      <i class="fas fa-check"></i> Valider le code
+    <button type="submit" class="btn btn-primary btn-block" style="margin-top:4px;">
+      <i class="fas fa-check-circle"></i> Valider
     </button>
   </form>
+  {% else %}
+  <p>L'administrateur est en train de configurer votre code. Revenez dans quelques instants ou attendez la notification.</p>
+  <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:14px 16px;margin:16px 0;font-size:.88rem;color:var(--text-secondary);">
+    <i class="fas fa-hourglass-half" style="color:var(--warning);"></i>
+    Vous recevrez une notification dès que votre code est prêt.
+  </div>
+  {% endif %}
   {% endif %}
 
   <hr class="verify-divider">
