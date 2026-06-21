@@ -66,9 +66,6 @@ def league_detail(request, pk):
     league = get_object_or_404(League, pk=pk)
 
     is_participant = league.participants.filter(user=request.user).exists()
-    if not request.user.is_staff and not is_participant:
-        messages.error(request, "Vous ne faites pas partie de cette ligue.")
-        return redirect('leagues:league_list')
 
     standings = league.get_standings_ordered()
 
@@ -81,9 +78,7 @@ def league_detail(request, pk):
 
     participants = league.participants.select_related('user', 'standing').all()
 
-    user_participant = None
-    if not request.user.is_staff:
-        user_participant = participants.filter(user=request.user).first()
+    user_participant = participants.filter(user=request.user).first()
 
     pending_results = None
     if request.user.is_staff:
@@ -104,6 +99,7 @@ def league_detail(request, pk):
         'standings': standings,
         'matches_by_round': matches_by_round,
         'participants': participants,
+        'is_participant': is_participant,
         'user_participant': user_participant,
         'pending_results': pending_results,
         'pending_count': len(pending_results) if pending_results else 0,

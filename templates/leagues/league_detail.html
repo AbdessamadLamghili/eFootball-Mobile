@@ -42,8 +42,7 @@
           <span><i class="fas fa-calendar-check"></i> Démarrée le {{ league.started_at|date:"d/m/Y" }}</span>
           <span class="ml-3">
             <i class="fas fa-futbol"></i>
-            {{ league.matches.count }} match(s) ·
-            {{ league.matches.filter }}
+            {{ league.matches.count }} match(s)
           </span>
         </div>
         {% endif %}
@@ -417,7 +416,6 @@
           <div class="result-dash">—</div>
           <div class="result-side result-away">
             <div class="result-score-num">{{ match.result.away_score }}</div>
-            <div class="result-team-name">{{ match.result.away_score }}</div>
             <div class="result-team-name">{{ match.away_participant.team_name }}</div>
           </div>
         </div>
