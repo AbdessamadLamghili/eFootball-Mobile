@@ -327,6 +327,26 @@
         {% endif %}
         {% endif %}
 
+        <!-- Admin direct score entry (for any non-validated match) -->
+        {% if user.is_staff and match.status != 'validated' %}
+        <div class="match-admin-score-entry" style="padding:10px 12px;border-top:1px solid var(--border);background:rgba(99,102,241,.03);">
+          <form method="post" action="{% url 'leagues:match_admin_set_result' league.pk match.pk %}"
+                onsubmit="return confirm('Enregistrer ce score pour J{{ match.round_number }} ?')"
+                style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            {% csrf_token %}
+            <span style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap;"><i class="fas fa-shield-alt"></i> Score admin :</span>
+            <input type="number" name="home_score" min="0" max="99" class="form-control"
+                   style="width:62px;text-align:center;font-weight:700;padding:4px 6px;font-size:.95rem;" placeholder="Dom" required>
+            <span style="font-weight:700;color:var(--text-secondary);">—</span>
+            <input type="number" name="away_score" min="0" max="99" class="form-control"
+                   style="width:62px;text-align:center;font-weight:700;padding:4px 6px;font-size:.95rem;" placeholder="Ext" required>
+            <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap;">
+              <i class="fas fa-check"></i> Valider
+            </button>
+          </form>
+        </div>
+        {% endif %}
+
         <!-- Submitted result preview (for the submitting player) -->
         {% if match.status == 'submitted' %}
         {% with result=match.result_or_none %}
@@ -462,47 +482,87 @@
           <span class="badge badge-warning">En attente de validation</span>
         </div>
 
-        <!-- Teams & Score -->
-        <div class="result-score-display">
-          <div class="result-side result-home">
-            <div class="result-team-name">{{ match.home_participant.team_name }}</div>
-            <div class="result-score-num">{{ match.result.home_score }}</div>
+        {# ── Version 1 : premier soumetteur ── #}
+        <div class="result-version-block" style="border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:12px;margin-bottom:10px;">
+          <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:8px;"><i class="fas fa-user"></i> {{ match.result.submitted_by.username }}</div>
+          <div class="result-score-display">
+            <div class="result-side result-home">
+              <div class="result-team-name">{{ match.home_participant.team_name }}</div>
+              <div class="result-score-num">{{ match.result.home_score }}</div>
+            </div>
+            <div class="result-dash">—</div>
+            <div class="result-side result-away">
+              <div class="result-score-num">{{ match.result.away_score }}</div>
+              <div class="result-team-name">{{ match.away_participant.team_name }}</div>
+            </div>
           </div>
-          <div class="result-dash">—</div>
-          <div class="result-side result-away">
-            <div class="result-score-num">{{ match.result.away_score }}</div>
-            <div class="result-team-name">{{ match.away_participant.team_name }}</div>
+          {% if match.result.screenshot %}
+          <div style="margin-top:8px;">
+            <a href="{{ match.result.screenshot.url }}" target="_blank" class="btn btn-outline btn-sm">
+              <i class="fas fa-image"></i> Voir la capture
+            </a>
           </div>
+          {% endif %}
+          <form method="post" action="{% url 'leagues:match_validate' league.pk match.pk %}"
+                onsubmit="return confirm('Valider {{ match.result.home_score }}–{{ match.result.away_score }} ?')"
+                style="margin-top:10px;">
+            {% csrf_token %}
+            <input type="hidden" name="source" value="submitted">
+            <button type="submit" class="btn btn-success btn-sm">
+              <i class="fas fa-check"></i> Valider {{ match.result.home_score }}–{{ match.result.away_score }}
+            </button>
+          </form>
         </div>
 
-        <!-- Meta -->
-        <div class="result-admin-meta">
-          <i class="fas fa-user"></i>
-          Soumis par <strong>{{ match.result.submitted_by.username }}</strong>
-          le {{ match.result.submitted_at|date:"d/m/Y à H:i" }}
-        </div>
-
-        <!-- Screenshot -->
-        {% if match.result.screenshot %}
-        <div class="result-screenshot-link">
-          <a href="{{ match.result.screenshot.url }}" target="_blank" class="btn btn-outline btn-sm">
-            <i class="fas fa-image"></i> Voir la capture d'écran
-          </a>
+        {# ── Version 2 : deuxième soumetteur (challenger) ── #}
+        {% if match.result.challenger_submitted_by %}
+        <div class="result-version-block" style="border:1px solid rgba(245,158,11,.35);border-radius:10px;padding:12px;margin-bottom:10px;background:rgba(245,158,11,.04);">
+          <div style="font-size:.8rem;font-weight:700;color:var(--warning);margin-bottom:8px;"><i class="fas fa-user"></i> {{ match.result.challenger_submitted_by.username }}</div>
+          <div class="result-score-display">
+            <div class="result-side result-home">
+              <div class="result-team-name">{{ match.home_participant.team_name }}</div>
+              <div class="result-score-num">{{ match.result.challenger_home_score }}</div>
+            </div>
+            <div class="result-dash">—</div>
+            <div class="result-side result-away">
+              <div class="result-score-num">{{ match.result.challenger_away_score }}</div>
+              <div class="result-team-name">{{ match.away_participant.team_name }}</div>
+            </div>
+          </div>
+          {% if match.result.challenger_screenshot %}
+          <div style="margin-top:8px;">
+            <a href="{{ match.result.challenger_screenshot.url }}" target="_blank" class="btn btn-outline btn-sm">
+              <i class="fas fa-image"></i> Voir la capture
+            </a>
+          </div>
+          {% endif %}
+          <form method="post" action="{% url 'leagues:match_validate' league.pk match.pk %}"
+                onsubmit="return confirm('Valider {{ match.result.challenger_home_score }}–{{ match.result.challenger_away_score }} ?')"
+                style="margin-top:10px;">
+            {% csrf_token %}
+            <input type="hidden" name="source" value="challenger">
+            <button type="submit" class="btn btn-success btn-sm" style="background:var(--warning);border-color:var(--warning);">
+              <i class="fas fa-check"></i> Valider {{ match.result.challenger_home_score }}–{{ match.result.challenger_away_score }}
+            </button>
+          </form>
         </div>
         {% endif %}
 
-        <!-- Actions -->
-        <div class="result-admin-actions">
-          <!-- Validate -->
-          <form method="post" action="{% url 'leagues:match_validate' league.pk match.pk %}"
-                onsubmit="return confirm('Valider ce résultat ?')">
+        {# ── Admin direct score entry ── #}
+        <div style="border:1px dashed var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">
+          <div style="font-size:.8rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px;"><i class="fas fa-shield-alt"></i> Saisir le score manuellement</div>
+          <form method="post" action="{% url 'leagues:match_admin_set_result' league.pk match.pk %}"
+                onsubmit="return confirm('Enregistrer ce score ?')" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             {% csrf_token %}
-            <button type="submit" class="btn btn-success">
-              <i class="fas fa-check"></i> Valider
-            </button>
+            <input type="number" name="home_score" min="0" max="99" placeholder="{{ match.home_participant.team_name|truncatechars:10 }}" class="form-control" style="width:80px;text-align:center;font-weight:700;font-size:1.1rem;" required>
+            <span style="font-weight:700;">—</span>
+            <input type="number" name="away_score" min="0" max="99" placeholder="{{ match.away_participant.team_name|truncatechars:10 }}" class="form-control" style="width:80px;text-align:center;font-weight:700;font-size:1.1rem;" required>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Enregistrer</button>
           </form>
+        </div>
 
-          <!-- Reject -->
+        <!-- Reject -->
+        <div class="result-admin-actions">
           <form method="post" action="{% url 'leagues:match_reject' league.pk match.pk %}"
                 class="reject-form-inline"
                 onsubmit="return this.querySelector('input[name=rejection_reason]').value.trim() !== '' || (alert('Veuillez indiquer le motif du refus.'), false)">

@@ -257,22 +257,34 @@ def match_submit_result(request, pk, match_pk):
     if request.method == 'POST':
         form = MatchResultForm(request.POST, request.FILES)
         if form.is_valid():
-            MatchResult.objects.filter(match=match).delete()
+            existing = MatchResult.objects.filter(match=match).first()
 
-            result = form.save(commit=False)
-            result.match = match
-            result.submitted_by = request.user
-            result.save()
-
-            match.status = Match.STATUS_SUBMITTED
-            match.save()
+            if existing and existing.submitted_by_id != request.user.pk:
+                # Second player submitting a different version — save as challenger
+                existing.challenger_home_score = form.cleaned_data['home_score']
+                existing.challenger_away_score = form.cleaned_data['away_score']
+                existing.challenger_submitted_by = request.user
+                if request.FILES.get('screenshot'):
+                    existing.challenger_screenshot = request.FILES['screenshot']
+                existing.save()
+            else:
+                # First submission or same player resubmitting — replace main fields
+                if existing:
+                    existing.delete()
+                result = form.save(commit=False)
+                result.match = match
+                result.submitted_by = request.user
+                result.save()
+                match.status = Match.STATUS_SUBMITTED
+                match.save()
 
             LeagueLog.objects.create(
                 league=league,
                 action=LeagueLog.ACTION_RESULT_SUBMITTED,
                 description=(
                     f"Résultat soumis par {request.user.username} : "
-                    f"{match.home_participant.team_name} {result.home_score}–{result.away_score} "
+                    f"{match.home_participant.team_name} "
+                    f"{form.cleaned_data['home_score']}–{form.cleaned_data['away_score']} "
                     f"{match.away_participant.team_name} (J{match.round_number})."
                 ),
                 performed_by=request.user,
@@ -297,29 +309,37 @@ def match_validate(request, pk, match_pk):
     match = get_object_or_404(Match, pk=match_pk, league=league, status=Match.STATUS_SUBMITTED)
     result = get_object_or_404(MatchResult, match=match)
 
+    # Admin can choose to validate the challenger version instead
+    source = request.POST.get('source', 'submitted')
+    if source == 'challenger' and result.challenger_home_score is not None:
+        home_score = result.challenger_home_score
+        away_score = result.challenger_away_score
+    else:
+        home_score = result.home_score
+        away_score = result.away_score
+
     result.validated_by = request.user
     result.validated_at = timezone.now()
     result.save()
 
     match.status = Match.STATUS_VALIDATED
-    match.home_score = result.home_score
-    match.away_score = result.away_score
+    match.home_score = home_score
+    match.away_score = away_score
     match.save()
 
-    _update_standings(match, result.home_score, result.away_score)
+    _update_standings(match, home_score, away_score)
 
     LeagueLog.objects.create(
         league=league,
         action=LeagueLog.ACTION_RESULT_VALIDATED,
         description=(
             f"Résultat validé par {request.user.username} : "
-            f"{match.home_participant.team_name} {result.home_score}–{result.away_score} "
+            f"{match.home_participant.team_name} {home_score}–{away_score} "
             f"{match.away_participant.team_name} (J{match.round_number})."
         ),
         performed_by=request.user,
     )
 
-    # Refresh league to check closure
     league.refresh_from_db()
     league.check_and_close()
 
@@ -329,6 +349,85 @@ def match_validate(request, pk, match_pk):
         messages.success(request, "Résultat validé. La ligue est maintenant terminée !")
     else:
         messages.success(request, "Résultat validé et classement mis à jour.")
+
+    return redirect(reverse('leagues:league_detail', kwargs={'pk': pk}) + '?tab=results')
+
+
+@staff_required
+@transaction.atomic
+def match_admin_set_result(request, pk, match_pk):
+    """Admin enters the score directly and validates the match without requiring player submission."""
+    league = get_object_or_404(League, pk=pk)
+    match = get_object_or_404(Match, pk=match_pk, league=league)
+
+    if match.status == Match.STATUS_VALIDATED:
+        messages.error(request, "Ce match est déjà validé.")
+        return redirect(reverse('leagues:league_detail', kwargs={'pk': pk}) + '?tab=results')
+
+    if request.method != 'POST':
+        return redirect('leagues:league_detail', pk=pk)
+
+    try:
+        home_score = int(request.POST.get('home_score', ''))
+        away_score = int(request.POST.get('away_score', ''))
+        if home_score < 0 or away_score < 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        messages.error(request, "Score invalide.")
+        return redirect(reverse('leagues:league_detail', kwargs={'pk': pk}) + '?tab=results')
+
+    # Create or update the MatchResult with admin's score
+    result, _ = MatchResult.objects.get_or_create(
+        match=match,
+        defaults={'submitted_by': request.user, 'home_score': home_score, 'away_score': away_score},
+    )
+    result.home_score = home_score
+    result.away_score = away_score
+    result.validated_by = request.user
+    result.validated_at = timezone.now()
+    result.save()
+
+    match.status = Match.STATUS_VALIDATED
+    match.home_score = home_score
+    match.away_score = away_score
+    match.save()
+
+    _update_standings(match, home_score, away_score)
+
+    LeagueLog.objects.create(
+        league=league,
+        action=LeagueLog.ACTION_RESULT_VALIDATED,
+        description=(
+            f"Score saisi directement par l'admin {request.user.username} : "
+            f"{match.home_participant.team_name} {home_score}–{away_score} "
+            f"{match.away_participant.team_name} (J{match.round_number})."
+        ),
+        performed_by=request.user,
+    )
+
+    league.refresh_from_db()
+    league.check_and_close()
+
+    # Notify both players
+    home_user = match.home_participant.user
+    away_user = match.away_participant.user
+    score_str = f"{home_score}–{away_score}"
+    for u in {home_user, away_user}:
+        Notification.objects.create(
+            user=u,
+            title="Résultat officiel",
+            message=(
+                f"L'admin a enregistré le résultat : "
+                f"{match.home_participant.team_name} {score_str} "
+                f"{match.away_participant.team_name} (Journée {match.round_number})."
+            ),
+            notification_type=Notification.TYPE_INFO,
+        )
+
+    if league.is_closed:
+        messages.success(request, f"Résultat {score_str} enregistré. La ligue est terminée !")
+    else:
+        messages.success(request, f"Résultat {score_str} enregistré et classement mis à jour.")
 
     return redirect(reverse('leagues:league_detail', kwargs={'pk': pk}) + '?tab=results')
 

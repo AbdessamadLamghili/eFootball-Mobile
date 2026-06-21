@@ -14,4 +14,5 @@ urlpatterns = [
     path('<int:pk>/match/<int:match_pk>/soumettre/', views.match_submit_result, name='match_submit_result'),
     path('<int:pk>/match/<int:match_pk>/valider/', views.match_validate, name='match_validate'),
     path('<int:pk>/match/<int:match_pk>/refuser/', views.match_reject, name='match_reject'),
+    path('<int:pk>/match/<int:match_pk>/admin-score/', views.match_admin_set_result, name='match_admin_set_result'),
 ]

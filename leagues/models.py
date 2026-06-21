@@ -198,7 +198,7 @@ class MatchResult(models.Model):
         on_delete=models.CASCADE,
         related_name='submitted_match_results',
     )
-    screenshot = models.ImageField(upload_to='leagues/screenshots/')
+    screenshot = models.ImageField(upload_to='leagues/screenshots/', null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
     validated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -208,6 +208,16 @@ class MatchResult(models.Model):
     )
     validated_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True)
+    # Second player's version (challenger submission)
+    challenger_home_score = models.IntegerField(null=True, blank=True)
+    challenger_away_score = models.IntegerField(null=True, blank=True)
+    challenger_submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='challenger_match_results',
+    )
+    challenger_screenshot = models.ImageField(upload_to='leagues/screenshots/', null=True, blank=True)
 
     class Meta:
         verbose_name = 'Résultat'
