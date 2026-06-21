@@ -69,9 +69,9 @@ class League(models.Model):
 
     def get_standings_ordered(self):
         return self.standings.select_related('participant__user').annotate(
-            goal_difference=F('goals_for') - F('goals_against')
+            goal_diff=F('goals_for') - F('goals_against')
         ).order_by(
-            '-points', '-goal_difference', '-goals_for', 'participant__team_name'
+            '-points', '-goal_diff', '-goals_for', 'participant__team_name'
         )
 
     def check_and_close(self):
